@@ -1,10 +1,7 @@
 
-Если ломается по причине данных, что созданы на другой версии (также сначала надо эту папку создать, она права поменяет потом, так что все кто пробует должны будут создать свою пока что)
+0. Если ломается по причине данных, что созданы на другой версии (также сначала надо эту папку создать, она права поменяет потом, так что все кто пробует должны будут создать свою пока что)
 
     mkdir -p postgres_data
-
-    # Дать правильные права
-    chmod 755 postgres_data
 
 
     # Изменить владельца директории на текущего пользователя
@@ -14,3 +11,47 @@
     sudo chmod -R 755 postgres_data
 
 
+
+Новые зависимости (requirements.txt)
+Если добавили новый пакет в requirements.txt:
+
+    docker-compose build django
+    docker-compose up -d
+
+Изменения в Dockerfile
+Если меняете сам Dockerfile:
+
+    docker-compose up -d --build
+
+Миграции БД
+После создания новых моделей:
+
+    docker exec -it django-app python manage.py makemigrations
+    docker exec -it django-app python manage.py migrate
+
+Не хватает прав на папку данных, при пересборе приложения
+    Временно перенести папку, потом вернуть перед поднятием
+
+При добавлении новых приложени  Django 
+    docker exec -it django-app python manage.py 
+    или
+    source ./project_venv/bin/activate
+    python manage.py
+
+Процесс создания таблиц models, serializers, views, urls, admin
+
+
+    # Создать миграции для модели
+    docker exec -it django-app python manage.py makemigrations api
+
+    # Применить миграции
+    docker exec -it django-app python manage.py migrate
+
+
+Перезапуск сервера Django
+    Локально
+    python manage.py runserver
+
+    Docker
+    docker-compose restart django
+    

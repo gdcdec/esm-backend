@@ -33,7 +33,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV '/home/ws4/Рабочий стол/Архитектура ПО Проект/project_venv'
+set -gx VIRTUAL_ENV /home/ws4/papo/project_venv
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/"bin $PATH

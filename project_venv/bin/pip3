@@ -1,6 +1,4 @@
-#!/bin/sh
-'''exec' "/home/ws4/Рабочий стол/Архитектура ПО Проект/project_venv/bin/python" "$0" "$@"
-' '''
+#!/home/ws4/papo/project_venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys
