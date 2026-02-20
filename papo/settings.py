@@ -134,10 +134,21 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
 AUTHENTICATION_BACKENDS = [
     'api.backends.EmailBackend',  # Наш бэкенд
     'django.contrib.auth.backends.ModelBackend',  # Стандартный как запасной
 ]
+
+#EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Для продакшена (пример с Gmail)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'paposerver1@gmail.com'
+EMAIL_HOST_PASSWORD = 'iejg mybd sqvx ljaq'
+DEFAULT_FROM_EMAIL = 'paposerver1@gmail.com'
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/

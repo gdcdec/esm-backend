@@ -1,5 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.contrib.auth import get_user_model
+import random
+from datetime import datetime, timedelta
 # api/models.py
 # Create your models here.
 
@@ -122,3 +125,42 @@ class CustomUser(AbstractUser):
         db_table = 'custom_user'  # Явно указываем имя таблицы
         verbose_name = 'User'
         verbose_name_plural = 'Users'
+        
+User = get_user_model()
+
+class PasswordReset(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    
+    @classmethod
+    def generate_code(cls):
+        """Генерирует 6-значный код"""
+        return ''.join([str(random.randint(0, 9)) for _ in range(6)])
+    
+    @classmethod
+    def create_for_user(cls, user):
+        """Создает код для пользователя"""
+        # Удаляем старые коды пользователя
+        cls.objects.filter(user=user).delete()
+        
+        # Создаем новый код
+        code = cls.generate_code()
+        expires_at = datetime.now() + timedelta(minutes=15)  # Код действителен 15 минут
+        
+        return cls.objects.create(
+            user=user,
+            code=code,
+            expires_at=expires_at
+        )
+    
+    def is_valid(self):
+        """Проверяет, действителен ли код"""
+        return (not self.is_used and 
+                self.expires_at > datetime.now())
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.code}"
+

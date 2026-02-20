@@ -10,6 +10,18 @@ from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 from django.contrib.auth import logout
+from django.contrib.auth import get_user_model
+
+from .models import PasswordReset
+from .serializers import (
+    PasswordResetRequestSerializer,
+    PasswordResetVerifySerializer,
+    PasswordResetConfirmSerializer
+)
+from datetime import datetime, timedelta#!
+from .utils.email_utils import send_password_reset_email
+
+User = get_user_model()
 # Create your views here.
 
 
@@ -163,7 +175,7 @@ class ChangePasswordView(APIView):
         user.save()
         return Response({"message": "Пароль успешно изменен"})
 
-class CustomAuthToken(ObtainAuthToken):
+class CustomAuthToken(ObtainAuthToken):# Login
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data,
                                            context={'request': request})
@@ -179,3 +191,109 @@ class CustomAuthToken(ObtainAuthToken):
             'first_name': user.first_name,
             'last_name': user.last_name
         })
+        
+        
+        
+class PasswordResetRequestView(APIView):
+    """
+    Шаг 1: Запрос на сброс пароля
+    Отправляет код подтверждения на email
+    """
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        email = serializer.validated_data['email']
+        user = serializer.context['user']
+        
+        # Создаем код сброса
+        reset = PasswordReset.create_for_user(user)
+        
+        # Отправляем код на email
+        success, message = send_password_reset_email(email, reset.code)
+        
+        if success:
+            
+            #print(f"\nКод сброса для {email}: {reset.code}\n")
+            
+            return Response({
+                'message': 'Код подтверждения отправлен на ваш email',
+                'email': email,
+                'debug_code': reset.code  # Только для разработки!
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                'error': f'Ошибка отправки email: {message}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class PasswordResetVerifyView(APIView):
+    """
+    Шаг 2: Проверка кода подтверждения
+    """
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        serializer = PasswordResetVerifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        return Response({
+            'message': 'Код подтвержден',
+            'verified': True
+        }, status=status.HTTP_200_OK)
+
+
+class PasswordResetConfirmView(APIView):
+    """
+    Шаг 3: Установка нового пароля
+    """
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        user = serializer.context['user']
+        reset = serializer.context['reset']
+        
+        # Устанавливаем новый пароль
+        user.set_password(serializer.validated_data['new_password'])
+        user.save()
+        
+        # Помечаем код как использованный
+        reset.is_used = True
+        reset.save()
+        
+        return Response({
+            'message': 'Пароль успешно изменен. Теперь вы можете войти с новым паролем.'
+        }, status=status.HTTP_200_OK)
+
+
+# Дополнительный View для проверки статуса (опционально)
+class PasswordResetStatusView(APIView):
+    """
+    Проверка статуса запроса сброса пароля
+    """
+    permission_classes = [permissions.AllowAny]
+    
+    def get(self, request, email):
+        try:
+            user = User.objects.get(email=email)
+            reset = PasswordReset.objects.filter(user=user, is_used=False).first()
+            
+            if reset and reset.is_valid():
+                return Response({
+                    'has_active_request': True,
+                    'expires_at': reset.expires_at,
+                    'time_remaining': str(reset.expires_at - datetime.now())
+                })
+            else:
+                return Response({
+                    'has_active_request': False
+                })
+        except User.DoesNotExist:
+            return Response({
+                'error': 'Пользователь не найден'
+            }, status=status.HTTP_404_NOT_FOUND)

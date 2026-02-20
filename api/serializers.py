@@ -1,6 +1,11 @@
 from rest_framework import serializers
 from .models import Rubric
 from .models import CustomUser
+from .models import PasswordReset
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
 
 class RubricSerializer(serializers.ModelSerializer):
     class Meta:
@@ -62,3 +67,78 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         )
         
         return user
+    
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    """Сериализатор для запроса сброса пароля"""
+    email = serializers.EmailField()
+    
+    def validate_email(self, value):
+        try:
+            user = User.objects.get(email=value)
+            # Сохраняем пользователя в контексте для использования в view
+            self.context['user'] = user
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Пользователь с таким email не найден")
+        return value
+
+class PasswordResetVerifySerializer(serializers.Serializer):
+    """Сериализатор для проверки кода"""
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6)
+    
+    def validate(self, data):
+        try:
+            user = User.objects.get(email=data['email'])
+            reset = PasswordReset.objects.get(
+                user=user,
+                code=data['code'],
+                is_used=False
+            )
+            
+            if not reset.is_valid():
+                raise serializers.ValidationError("Код истек. Запросите новый код.")
+            
+            # Сохраняем в контексте
+            self.context['reset'] = reset
+            
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Пользователь не найден")
+        except PasswordReset.DoesNotExist:
+            raise serializers.ValidationError("Неверный код")
+        
+        return data
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """Сериализатор для установки нового пароля"""
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6)
+    new_password = serializers.CharField(min_length=6, write_only=True)
+    confirm_password = serializers.CharField(min_length=6, write_only=True)
+    
+    def validate(self, data):
+        if data['new_password'] != data['confirm_password']:
+            raise serializers.ValidationError("Пароли не совпадают")
+        
+        try:
+            user = User.objects.get(email=data['email'])
+            reset = PasswordReset.objects.get(
+                user=user,
+                code=data['code'],
+                is_used=False
+            )
+            
+            if not reset.is_valid():
+                raise serializers.ValidationError("Код истек. Запросите новый код.")
+            
+            # Сохраняем в контексте
+            self.context['user'] = user
+            self.context['reset'] = reset
+            
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Пользователь не найден")
+        except PasswordReset.DoesNotExist:
+            raise serializers.ValidationError("Неверный код")
+        
+        return data

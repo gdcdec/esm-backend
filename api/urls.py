@@ -21,6 +21,15 @@ urlpatterns = [
             path('login/', CustomAuthToken.as_view(), name='user-login'),
             path('logout/', views.LogoutView.as_view(), name='user-logout'),
             # path('password-reset/', views.PasswordResetView.as_view()),
+            path('password-reset/request/', views.PasswordResetRequestView.as_view(), name='password-reset-request'),
+            path('password-reset/verify/', views.PasswordResetVerifyView.as_view(), name='password-reset-verify'),
+            path('password-reset/confirm/', views.PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
+            path('password-reset/status/<str:email>/', views.PasswordResetStatusView.as_view(), name='password-reset-status'),
         ])),
     
 ]
+
+
+
+
+# Сброс пароля
