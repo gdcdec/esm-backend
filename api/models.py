@@ -42,16 +42,77 @@ class Rubric(models.Model):
 
 
 class CustomUser(AbstractUser):
-    phone_number = models.CharField(max_length=15, blank=True, null=True)
+    """
+    Поля что мы должны иметь по ТЗ
+    Логин уже есть как гл ключ
+    Пароль
+    Почта
+    Фамилия
+    Имя
+    Отчествво
+    Номер телефона
+    Город
+    Улица
+    Дом
+    Квартира
+    auth_token
+    """
+    
     birth_date = models.DateField(blank=True, null=True)
-    subscription_type = models.CharField(
-        max_length=20,
-        choices=[
-            ('basic', 'Базовый'),
-            ('premium', 'Премиум'),
-            ('enterprise', 'Корпоративный'),
-        ],
-        default='basic'
+    # Добавляем недостающие поля
+    patronymic = models.CharField(
+        max_length=150, 
+        blank=True, 
+        null=True,
+        verbose_name="Отчество"
+    )
+    
+    phone_number = models.CharField(
+        max_length=15, 
+        blank=True, 
+        null=True,
+        verbose_name="Номер телефона"
+    )
+    
+    city = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True,
+        verbose_name="Город"
+    )
+    
+    street = models.CharField(
+        max_length=200, 
+        blank=True, 
+        null=True,
+        verbose_name="Улица"
+    )
+    
+    house = models.CharField(
+        max_length=20, 
+        blank=True, 
+        null=True,
+        verbose_name="Дом"
+    )
+    
+    apartment = models.CharField(
+        max_length=20, 
+        blank=True, 
+        null=True,
+        verbose_name="Квартира"
+    )
+    """
+    auth_token = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name="Токен авторизации"
+    )
+    """
+    # Делаем email уникальным (ключевым полем)
+    email = models.EmailField(
+        unique=True,
+        verbose_name="Почта"
     )
     
     def __str__(self):
