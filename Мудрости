@@ -84,4 +84,20 @@ docker-compose exec django python manage.py migrate
 
 ВАЖНО, ЕСЛИ МЫ МЕНЯЕМ МОДЕЛИ ЧТО СОЗДАНЫ САМОЙ ДЖАНГО БУДЕТ ПОЛНЫЙ АД, НАДО УДАЛЯТЬ ВСЮ СХЕМУ БД, СОЗДАТЬ 1 ЭТУ ИЗМЕНЁННУЮ ТАБЛИЦУ ПРИМЕНИТЬ И ПЕРЕЗАПУСТИТЬ КОНТЕЙНЕРЫ ДЛЯ СОЗДАНИЯ ОСТАЛЬНЫХ ВСЕХ И НАШИХ И ДЖАНГО, ЧТО УДАЛЕНЫ 
 
+urls какие у нас
+    docker-compose exec django python manage.py show_urls
+
+
+Постман неправильно отправляет токена добавляет рандомные проблемы через консоль лучше пробовать
+    # Логин
+    curl -X POST http://localhost:8000/api/auth/login/ \
+      -H "Content-Type: application/json" \
+      -d '{"username": "testuser", "password": "testpass123"}'
+
+    # Логаут (подставьте ваш токен)
+    curl -X POST http://localhost:8000/api/auth/logout/ \
+      -H "Authorization: Token 02910c860a34e3a618bc90fabe0a8c0e3c6c78b8" \
+      -H "Content-Type: application/json" \
+      -d '{}'
+
     

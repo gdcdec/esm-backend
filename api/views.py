@@ -4,11 +4,12 @@ from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import Rubric, CustomUser
-from .serializers import RubricSerializer, CustomUserSerializer
-from .serializers import CustomUserSerializer
+from .serializers import RubricSerializer, UserRegistrationSerializer
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import TokenAuthentication
+from django.contrib.auth import logout
 # Create your views here.
 
 
@@ -57,35 +58,93 @@ class RubricViewSet(viewsets.ModelViewSet):
 
 class UserRegistrationView(generics.CreateAPIView):
     queryset = CustomUser.objects.all()
-    serializer_class = CustomUserSerializer
+    serializer_class = UserRegistrationSerializer
     permission_classes = [permissions.AllowAny]
     
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        # Сохраняем пользователя
+        # Сохраняем пользователя (пароль хешируется в create_user)
         user = serializer.save()
         
-        # Токен создается автоматически сигналом
-        token = Token.objects.get(user=user)
+        # Создаем токен
+        token, created = Token.objects.get_or_create(user=user)
         
-        headers = self.get_success_headers(serializer.data)
+        # Формируем ответ
         return Response({
-            'user': serializer.data,
-            'token': token.key
-        }, status=status.HTTP_201_CREATED, headers=headers)
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'patronymic': user.patronymic,
+                'phone_number': user.phone_number,
+                'city': user.city,
+            },
+            'token': token.key,
+            'message': 'Регистрация успешна'
+        }, status=status.HTTP_201_CREATED)
 
 class LogoutView(APIView):
+    """
+    Выход из системы - удаляет токен пользователя
+    """
+    authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
     
     def post(self, request):
-        # Удаляем токен пользователя
-        request.user.auth_token.delete()
-        return Response(
-            {"message": "Успешный выход из системы"},
-            status=status.HTTP_200_OK
-        )
+        try:
+            auth_header = request.headers.get('Authorization', '')
+            if auth_header.startswith('Token '):
+                token_key = auth_header.split(' ')[1]
+                
+                token = Token.objects.filter(key=token_key).first()
+                if token:
+                    token.delete()
+                    print(f"Token deleted via header")
+                    return Response(
+                        {"message": "Успешный выход из системы"},
+                        status=status.HTTP_200_OK
+                    )
+            
+            
+            if hasattr(request.user, 'auth_token'):
+                request.user.auth_token.delete()
+                return Response(
+                    {"message": "Успешный выход из системы"},
+                    status=status.HTTP_200_OK
+                )
+            
+            
+            tokens = Token.objects.filter(user=request.user)
+            if tokens.exists():
+                tokens.delete()
+                return Response(
+                    {"message": "Успешный выход из системы"},
+                    status=status.HTTP_200_OK
+                )
+            
+            
+            
+            return Response(
+                {"message": "Пользователь уже вышел из системы"},
+                status=status.HTTP_200_OK
+            )
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            
+            return Response(
+                {
+                    "error": f"Ошибка при выходе: {str(e)}",
+                    "auth_header": request.headers.get('Authorization', 'None'),
+                    "user": str(request.user)
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 class ChangePasswordView(APIView):
     """Смена пароля"""
@@ -111,9 +170,12 @@ class CustomAuthToken(ObtainAuthToken):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
         token, created = Token.objects.get_or_create(user=user)
+        
         return Response({
             'token': token.key,
             'user_id': user.pk,
+            'username': user.username,
             'email': user.email,
-            'username': user.username
+            'first_name': user.first_name,
+            'last_name': user.last_name
         })
