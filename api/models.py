@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
 # api/models.py
 # Create your models here.
 
@@ -39,3 +39,25 @@ class Rubric(models.Model):
         if self.counter > 0:
             self.counter -= 1
             self.save()
+
+
+class CustomUser(AbstractUser):
+    phone_number = models.CharField(max_length=15, blank=True, null=True)
+    birth_date = models.DateField(blank=True, null=True)
+    subscription_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('basic', 'Базовый'),
+            ('premium', 'Премиум'),
+            ('enterprise', 'Корпоративный'),
+        ],
+        default='basic'
+    )
+    
+    def __str__(self):
+        return self.username
+    
+    class Meta:
+        db_table = 'custom_user'  # Явно указываем имя таблицы
+        verbose_name = 'User'
+        verbose_name_plural = 'Users'

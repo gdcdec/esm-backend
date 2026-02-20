@@ -1,3 +1,11 @@
+Процесс создания таблиц models, serializers, views, urls, admin
+
+
+    # Создать миграции для модели
+    docker exec -it django-app python manage.py makemigrations api
+
+    # Применить миграции
+    docker exec -it django-app python manage.py migrate
 
 0. Если ломается по причине данных, что созданы на другой версии (также сначала надо эту папку создать, она права поменяет потом, так что все кто пробует должны будут создать свою пока что)
 
@@ -38,14 +46,6 @@
     source ./project_venv/bin/activate
     python manage.py
 
-Процесс создания таблиц models, serializers, views, urls, admin
-
-
-    # Создать миграции для модели
-    docker exec -it django-app python manage.py makemigrations api
-
-    # Применить миграции
-    docker exec -it django-app python manage.py migrate
 
 
 Перезапуск сервера Django
@@ -54,4 +54,34 @@
 
     Docker
     docker-compose restart django
+
+
+pgadmin cant write /var/lib/pgadmin/sessions
+    sudo chmod -R 777 pgadmin_data
+
+    Или 
+        
+    sudo chown -R 5050:5050 pgadmin_data
+
+
+
+Перед установкой приложения проверить, что нет в settings.py иногда оно может быть уже, но не устанолено и ошибки даёт
+    
+После удановки приложения users
+    docker exec -it django-app python manage.py startapp users
+
+    ИЛИ
+    
+    docker exec -it django-app bash
+    python manage.py startapp users
+
+
+sudo mkdir -p users/migrations
+sudo touch users/__init__.py
+sudo touch users/migrations/__init__.py
+
+docker-compose exec django python manage.py migrate
+
+ВАЖНО, ЕСЛИ МЫ МЕНЯЕМ МОДЕЛИ ЧТО СОЗДАНЫ САМОЙ ДЖАНГО БУДЕТ ПОЛНЫЙ АД, НАДО УДАЛЯТЬ ВСЮ СХЕМУ БД, СОЗДАТЬ 1 ЭТУ ИЗМЕНЁННУЮ ТАБЛИЦУ ПРИМЕНИТЬ И ПЕРЕЗАПУСТИТЬ КОНТЕЙНЕРЫ ДЛЯ СОЗДАНИЯ ОСТАЛЬНЫХ ВСЕХ И НАШИХ И ДЖАНГО, ЧТО УДАЛЕНЫ 
+
     
