@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.db import models 
 from rest_framework import viewsets, status, generics, permissions
 from rest_framework.decorators import action
 from rest_framework.views import APIView
@@ -17,6 +18,17 @@ from .serializers import (
     PasswordResetRequestSerializer,
     PasswordResetVerifySerializer,
     PasswordResetConfirmSerializer
+)
+
+from rest_framework.parsers import MultiPartParser, FormParser
+from .models import Post, PostPhoto
+from .serializers import (
+    PostSerializer, 
+    PostCreateSerializer,
+    PostPhotoSerializer, 
+    PostPhotoUploadSerializer,
+    PostListSerializer,
+    PostUpdateSerializer
 )
 from datetime import datetime, timedelta#!
 from .utils.email_utils import send_password_reset_email
@@ -297,3 +309,144 @@ class PasswordResetStatusView(APIView):
             return Response({
                 'error': 'Пользователь не найден'
             }, status=status.HTTP_404_NOT_FOUND)
+            
+# Posts
+        """
+        GET /api/posts/ - список постов
+
+        POST /api/posts/ - создание поста
+
+        GET /api/posts/<id>/ - детали поста
+
+        PUT/PATCH /api/posts/<id>/ - обновление поста
+
+        DELETE /api/posts/<id>/ - удаление поста
+
+        POST /api/posts/photos/upload/ - загрузка фото
+
+        DELETE /api/posts/photos/<id>/ - удаление фото
+        """
+class PostListView(generics.ListCreateAPIView):
+    """
+    Список постов и создание нового поста
+    """
+    authentication_classes = [TokenAuthentication] # Без него не сканит токен? Да, надо добавлять
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return PostCreateSerializer
+        # Для списка используем упрощенный сериализатор
+        return PostListSerializer
+    
+    def get_queryset(self):
+        # Фильтруем по статусу для разных пользователей
+        user = self.request.user
+        
+        if user.is_authenticated:
+            # Авторизованные видят свои черновики и все опубликованные
+            return Post.objects.filter(
+                models.Q(status='published') | 
+                models.Q(author=user)
+            ).select_related('author').prefetch_related('photos')
+        else:
+            # Анонимные видят только опубликованные
+            return Post.objects.filter(
+                status='published'
+            ).select_related('author').prefetch_related('photos')
+    
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
+
+class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Детали поста, обновление, удаление
+    """
+    authentication_classes = [TokenAuthentication] # Без него не сканит токен? Да, надо добавлять
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    queryset = Post.objects.all().select_related('author').prefetch_related('photos')
+    
+    def get_serializer_class(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return PostUpdateSerializer
+        return PostSerializer
+    
+    def check_object_permissions(self, request, obj):
+        # Проверка прав доступа
+        if request.method in ['PUT', 'PATCH', 'DELETE']:
+            # Только автор может редактировать/удалять
+            if obj.author != request.user:
+                self.permission_denied(request, "Вы не автор этого поста")
+        
+        # Для чтения проверяем статус
+        if request.method == 'GET':
+            if obj.status != 'published' and obj.author != request.user:
+                self.permission_denied(request, "Пост не опубликован")
+        
+        return super().check_object_permissions(request, obj)
+
+
+class UserPostListView(generics.ListAPIView):
+    """
+    Список постов конкретного пользователя
+    """
+    serializer_class = PostListSerializer
+    permission_classes = [permissions.AllowAny]
+    
+    def get_queryset(self):
+        user_id = self.kwargs['user_id']
+        user = self.request.user
+        
+        if user.is_authenticated and user.id == user_id:
+            # Свои посты (включая черновики)
+            return Post.objects.filter(
+                author_id=user_id
+            ).select_related('author').prefetch_related('photos')
+        else:
+            # Чужие посты (только опубликованные)
+            return Post.objects.filter(
+                author_id=user_id,
+                status='published'
+            ).select_related('author').prefetch_related('photos')
+            
+class PostPhotoUploadView(generics.CreateAPIView):
+    """
+    Загрузка фотографий к существующему посту
+    """
+    serializer_class = PostPhotoUploadSerializer
+    authentication_classes = [TokenAuthentication] # Без него не сканит токен? Да, надо добавлять
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+    
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        photos = serializer.save()
+        
+        response_serializer = PostPhotoSerializer(
+            photos, 
+            many=True, 
+            context={'request': request}
+        )
+        
+        return Response(
+            response_serializer.data,
+            status=status.HTTP_201_CREATED
+        )
+
+
+class PostPhotoDeleteView(generics.DestroyAPIView):
+    """
+    Удаление конкретной фотографии
+    """
+    authentication_classes = [TokenAuthentication] # Без него не сканит токен? Да, надо добавлять
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = PostPhoto.objects.all()
+    serializer_class = PostPhotoSerializer
+    
+    def check_object_permissions(self, request, obj):
+        if obj.post.author != request.user:
+            self.permission_denied(request, "Вы не автор этого поста")
+        return super().check_object_permissions(request, obj)
