@@ -186,7 +186,29 @@ class Post(models.Model):
         blank=True  # Можно оставить пустым
     )
     
-    # Связь с автором #После продакшена убрать нулы
+    # Адрес события
+    address = models.CharField(
+        max_length=500,
+        verbose_name="Адрес события",
+        help_text="Адрес инцидента/события",
+        blank=True
+    )
+    
+    # Координаты (точка на карте). Временно null/blank
+    latitude = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name="Широта",
+        help_text="Latitude: -90 до 90"
+    )
+    longitude = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name="Долгота",
+        help_text="Longitude: -180 до 180"
+    )
+    
+    # Связь с автором #После продак убрать нулы
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
