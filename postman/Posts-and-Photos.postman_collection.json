@@ -1,0 +1,955 @@
+{
+  "info": {
+    "name": "Posts and Photos Tests",
+    "description": "Полное тестирование постов и фотографий",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "⚙️ Настройка",
+      "item": [
+        {
+          "name": "1. Логин",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"✅ Статус 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.environment.set(\"auth_token\", response.token);",
+                  "pm.environment.set(\"user_id\", response.user_id);",
+                  "console.log(\"🔑 Токен:\", response.token);",
+                  "console.log(\"👤 User ID:\", response.user_id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/auth/login/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"testuser\",\n    \"password\": \"testpass123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "2. Регистрация (если нужно)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    console.log(\"✅ Пользователь создан\");",
+                  "} else if (pm.response.code === 400) {",
+                  "    console.log(\"⚠️ Пользователь уже существует\");",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/auth/register/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"testuser\",\n    \"email\": \"test@example.com\",\n    \"password\": \"testpass123\",\n    \"password2\": \"testpass123\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📝 Посты - Позитивные тесты",
+      "item": [
+        {
+          "name": "Создать пост",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"✅ Статус 201 - пост создан\", function() {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.environment.set(\"post_id\", response.id);",
+                  "",
+                  "pm.test(\"✅ Проверка полей поста\", function() {",
+                  "    pm.expect(response).to.have.property('id');",
+                  "    pm.expect(response).to.have.property('title');",
+                  "    pm.expect(response).to.have.property('description');",
+                  "    pm.expect(response).to.have.property('author_username');",
+                  "    pm.expect(response).to.have.property('created_at');",
+                  "    pm.expect(response).to.have.property('address');",
+                  "});",
+                  "",
+                  "pm.test(\"✅ Значения полей корректны\", function() {",
+                  "    pm.expect(response.title).to.eql(pm.variables.get(\"post_title\"));",
+                  "    pm.expect(response.description).to.include(\"тестовый пост\");",
+                  "    pm.expect(response.author_username).to.eql(\"testuser\");",
+                  "    pm.expect(response.photo_count).to.eql(0);",
+                  "});",
+                  "",
+                  "console.log(`📝 Пост создан: ID=${response.id}, Заголовок=\"${response.title}\"`);"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const timestamp = Date.now();",
+                  "const title = `Тестовый пост ${timestamp}`;",
+                  "pm.variables.set(\"post_title\", title);",
+                  "console.log(`📝 Создаем пост: \"${title}\"`);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/posts/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"{{post_title}}\",\n    \"description\": \"Это тестовый пост, созданный в Postman для проверки функционала\",\n    \"address\": \"ул. Ленина, 1\",\n    \"latitude\": 55.7558,\n    \"longitude\": 37.6173,\n    \"status\": \"published\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Получить все посты",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"✅ Статус 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "",
+                  "pm.test(\"✅ Ответ - это массив\", function() {",
+                  "    pm.expect(response).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"✅ В массиве есть посты\", function() {",
+                  "    pm.expect(response.length).to.be.at.least(1);",
+                  "});",
+                  "",
+                  "pm.test(\"✅ У каждого поста есть обязательные поля\", function() {",
+                  "    response.forEach(post => {",
+                  "        pm.expect(post).to.have.property('id');",
+                  "        pm.expect(post).to.have.property('title');",
+                  "        pm.expect(post).to.have.property('photo_count');",
+                  "    });",
+                  "});",
+                  "",
+                  "console.log(`📊 Всего постов: ${response.length}`);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": "{{base_url}}/posts/"
+          }
+        },
+        {
+          "name": "Получить конкретный пост",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"✅ Статус 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "",
+                  "pm.test(\"✅ ID поста совпадает\", function() {",
+                  "    pm.expect(response.id).to.eql(parseInt(pm.environment.get(\"post_id\")));",
+                  "});",
+                  "",
+                  "pm.test(\"✅ Есть все поля\", function() {",
+                  "    pm.expect(response).to.have.property('title');",
+                  "    pm.expect(response).to.have.property('description');",
+                  "    pm.expect(response).to.have.property('author_username');",
+                  "    pm.expect(response).to.have.property('created_at');",
+                  "    pm.expect(response).to.have.property('photos');",
+                  "    pm.expect(response).to.have.property('photo_count');",
+                  "});",
+                  "",
+                  "pm.test(\"✅ photos - это массив\", function() {",
+                  "    pm.expect(response.photos).to.be.an('array');",
+                  "});",
+                  "",
+                  "console.log(`📄 Пост #${response.id}: \"${response.title}\"`);",
+                  "console.log(`📸 Фото: ${response.photo_count}`);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": "{{base_url}}/posts/{{post_id}}/"
+          }
+        },
+        {
+          "name": "Обновить пост",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"✅ Статус 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "",
+                  "pm.test(\"✅ Заголовок обновлен\", function() {",
+                  "    pm.expect(response.title).to.eql(pm.variables.get(\"updated_title\"));",
+                  "});",
+                  "",
+                  "pm.test(\"✅ Описание обновлено\", function() {",
+                  "    pm.expect(response.description).to.include(\"ОБНОВЛЕНО\");",
+                  "});",
+                  "",
+                  "console.log(`✏️ Пост #${response.id} обновлен`);",
+                  "console.log(`   Новый заголовок: \"${response.title}\"`);"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const timestamp = Date.now();",
+                  "const updatedTitle = `ОБНОВЛЕННЫЙ пост ${timestamp}`;",
+                  "pm.variables.set(\"updated_title\", updatedTitle);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/posts/{{post_id}}/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"{{updated_title}}\",\n    \"description\": \"Это описание было ОБНОВЛЕНО через PATCH запрос\",\n    \"address\": \"ул. Мира, 5\",\n    \"latitude\": 55.76,\n    \"longitude\": 37.62,\n    \"status\": \"published\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Получить посты пользователя",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"✅ Статус 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "",
+                  "pm.test(\"✅ Ответ - массив\", function() {",
+                  "    pm.expect(response).to.be.an('array');",
+                  "});",
+                  "",
+                  "response.forEach(post => {",
+                  "    pm.test(`✅ Пост #${post.id} принадлежит пользователю`, function() {",
+                  "        pm.expect(post.author_username).to.eql('testuser');",
+                  "    });",
+                  "});",
+                  "",
+                  "console.log(`👤 Постов пользователя testuser: ${response.length}`);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": "{{base_url}}/users/{{user_id}}/posts/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📸 Фотографии - Позитивные тесты",
+      "item": [
+        {
+          "name": "Загрузить одно фото",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"✅ Статус 201\", function() {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "",
+                  "pm.test(\"✅ Загружено 1 фото\", function() {",
+                  "    pm.expect(response).to.be.an('array');",
+                  "    pm.expect(response.length).to.eql(1);",
+                  "});",
+                  "",
+                  "const photo = response[0];",
+                  "pm.environment.set(\"photo_id\", photo.id);",
+                  "",
+                  "pm.test(\"✅ Фото имеет корректные данные\", function() {",
+                  "    pm.expect(photo).to.have.property('id');",
+                  "    pm.expect(photo).to.have.property('photo_url');",
+                  "    pm.expect(photo).to.have.property('order');",
+                  "    pm.expect(photo).to.have.property('caption');",
+                  "    pm.expect(photo.photo_url).to.include('/media/posts/');",
+                  "    pm.expect(photo.caption).to.eql('Тестовое фото');",
+                  "    pm.expect(photo.order).to.eql(0);",
+                  "});",
+                  "",
+                  "console.log(`✅ Фото загружено, ID: ${photo.id}`);",
+                  "console.log(`📸 URL: ${photo.photo_url}`);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": "{{base_url}}/posts/photos/upload/",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "post_id",
+                  "value": "{{post_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "photos",
+                  "type": "file",
+                  "src": "/path/to/your/test/photo.jpg"
+                },
+                {
+                  "key": "captions",
+                  "value": "Тестовое фото",
+                  "type": "text"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Загрузить несколько фото",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"✅ Статус 201\", function() {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "",
+                  "pm.test(\"✅ Загружено 3 фото\", function() {",
+                  "    pm.expect(response).to.be.an('array');",
+                  "    pm.expect(response.length).to.eql(3);",
+                  "});",
+                  "",
+                  "response.forEach((photo, index) => {",
+                  "    pm.test(`✅ Фото ${index + 1} корректно`, function() {",
+                  "        pm.expect(photo).to.have.property('photo_url');",
+                  "        pm.expect(photo.order).to.eql(index);",
+                  "        pm.expect(photo.caption).to.eql(`Подпись ${index + 1}`);",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.environment.set(\"second_photo_id\", response[1].id);",
+                  "console.log(`✅ Загружено ${response.length} фото`);",
+                  "response.forEach((photo, i) => {",
+                  "    console.log(`   ${i+1}. ${photo.caption}: ${photo.photo_url}`);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": "{{base_url}}/posts/photos/upload/",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "post_id",
+                  "value": "{{post_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "photos",
+                  "type": "file",
+                  "src": "/path/to/your/test/photo1.jpg"
+                },
+                {
+                  "key": "photos",
+                  "type": "file",
+                  "src": "/path/to/your/test/photo2.jpg"
+                },
+                {
+                  "key": "photos",
+                  "type": "file",
+                  "src": "/path/to/your/test/photo3.jpg"
+                },
+                {
+                  "key": "captions",
+                  "value": "Подпись 1",
+                  "type": "text"
+                },
+                {
+                  "key": "captions",
+                  "value": "Подпись 2",
+                  "type": "text"
+                },
+                {
+                  "key": "captions",
+                  "value": "Подпись 3",
+                  "type": "text"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Проверить пост после загрузки фото",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"✅ Статус 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "",
+                  "pm.test(\"✅ Количество фото увеличилось\", function() {",
+                  "    pm.expect(response.photo_count).to.be.at.least(3);",
+                  "});",
+                  "",
+                  "pm.test(\"✅ Фото сохранили порядок\", function() {",
+                  "    const photos = response.photos;",
+                  "    for (let i = 0; i < photos.length - 1; i++) {",
+                  "        pm.expect(photos[i].order).to.be.at.most(photos[i+1].order);",
+                  "    }",
+                  "});",
+                  "",
+                  "console.log(`📊 Пост #${response.id} теперь содержит ${response.photo_count} фото`);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": "{{base_url}}/posts/{{post_id}}/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔴 Посты - Негативные тесты",
+      "item": [
+        {
+          "name": "Создать пост без авторизации",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"❌ Статус 401 - неавторизован\", function() {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/posts/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Неавторизованный пост\",\n    \"description\": \"Этот пост не должен создаться\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Создать пост без заголовка",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const code = pm.response.code;",
+                  "pm.test(\"201 или 400 (заголовок опционален)\", function() {",
+                  "    pm.expect(code).to.be.oneOf([201, 400]);",
+                  "});",
+                  "if (code === 400) {",
+                  "    const response = pm.response.json();",
+                  "    pm.test(\"При 400 есть ошибка\", function() {",
+                  "        pm.expect(response).to.have.property('title');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/posts/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"description\": \"Пост без заголовка\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Получить несуществующий пост",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"❌ Статус 404 - не найден\", function() {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": "{{base_url}}/posts/999999/"
+          }
+        },
+        {
+          "name": "Обновить чужой пост",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"❌ Статус 403 - запрещено\", function() {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([403, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/posts/1/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Попытка взлома\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔴 Фотографии - Негативные тесты",
+      "item": [
+        {
+          "name": "Загрузить фото без авторизации",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"❌ Статус 401 - неавторизован\", function() {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{base_url}}/posts/photos/upload/",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "post_id",
+                  "value": "{{post_id}}",
+                  "type": "text"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Загрузить фото к чужому посту",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"❌ Статус 400\", function() {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test(\"❌ Есть ошибка\", function() {",
+                  "    pm.expect(response).to.have.property('post_id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": "{{base_url}}/posts/photos/upload/",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "post_id",
+                  "value": "1",
+                  "type": "text"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Загрузить не изображение",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"❌ Статус 400\", function() {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": "{{base_url}}/posts/photos/upload/",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "post_id",
+                  "value": "{{post_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "photos",
+                  "type": "file",
+                  "src": "/path/to/your/test/document.txt"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Загрузить слишком большое фото",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"❌ Статус 400\", function() {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": "{{base_url}}/posts/photos/upload/",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "post_id",
+                  "value": "{{post_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "photos",
+                  "type": "file",
+                  "src": "/path/to/your/test/large_photo.jpg"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Удалить чужое фото",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"❌ Статус 403 или 404\", function() {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([403, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": "{{base_url}}/posts/photos/1/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🧹 Очистка",
+      "item": [
+        {
+          "name": "Удалить фото",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"✅ Статус 204\", function() {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "console.log(\"✅ Фото удалено\");"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": "{{base_url}}/posts/photos/{{photo_id}}/"
+          }
+        },
+        {
+          "name": "Удалить пост",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"✅ Статус 204\", function() {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "console.log(\"✅ Пост удален\");"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": "{{base_url}}/posts/{{post_id}}/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📍 Nominatim / Адреса",
+      "item": [
+        {
+          "name": "Координаты → адрес (reverse)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{base_url}}/address/reverse/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"lat\": 53.225674,\n    \"lon\": 50.194162\n}"
+            }
+          }
+        },
+        {
+          "name": "Поиск по адресу (search)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/address/search/?q=Самара московское шоссе 77&limit=5"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api"
+    },
+    {
+      "key": "auth_token",
+      "value": ""
+    },
+    {
+      "key": "user_id",
+      "value": ""
+    },
+    {
+      "key": "post_id",
+      "value": ""
+    },
+    {
+      "key": "photo_id",
+      "value": ""
+    },
+    {
+      "key": "second_photo_id",
+      "value": ""
+    }
+  ]
+}

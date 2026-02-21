@@ -10,11 +10,12 @@ from .views import (
     PasswordResetRequestView,
     PasswordResetVerifyView,
     PasswordResetConfirmView,
-    # Добавляем новые импорты для постов
     PostListView,
     PostDetailView,
     PostPhotoUploadView,
-    PostPhotoDeleteView
+    PostPhotoDeleteView,
+    AddressReverseView,
+    AddressSearchView,
 )
 
 # router используем когда с таблицей однотипные действия делают
@@ -36,6 +37,9 @@ urlpatterns = [
         # Фотографии постов
         path('posts/photos/upload/', views.PostPhotoUploadView.as_view(), name='post-photo-upload'),
         path('posts/photos/<int:pk>/', views.PostPhotoDeleteView.as_view(), name='post-photo-delete'),
+        # Nominatim: координаты → адрес, поиск
+        path('address/reverse/', views.AddressReverseView.as_view(), name='address-reverse'),
+        path('address/search/', views.AddressSearchView.as_view(), name='address-search'),
         
         
         # Аутентификация

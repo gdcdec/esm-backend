@@ -178,9 +178,12 @@ class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = [
-            'id',                # Номер поста
-            'title',              # Заголовок
-            'description',        # Описание
+            'id',                # Номер поста/сообщения
+            'title',              # Тема сообщения (заголовок)
+            'description',        # Текст сообщения
+            'address',            # Адрес события (по ТЗ)
+            'latitude',           # Широта (координаты)
+            'longitude',          # Долгота (координаты)
             'author',             # ID автора
             'author_username',    # Имя автора
             'author_email',       # Email автора
@@ -189,8 +192,8 @@ class PostSerializer(serializers.ModelSerializer):
             'updated_at',         # Дата обновления
             'published_at',       # Дата публикации
             'photos',             # Список фото
-            'photo_count',        # Количество фото
-            'first_photo',        # Первое фото (для превью)
+            'photo_count',        # Количество фото (подпись по ТЗ)
+            'first_photo',        # Первое фото — главное (по ТЗ)
         ]
         read_only_fields = ['author', 'created_at', 'updated_at', 'published_at']
     
@@ -204,11 +207,11 @@ class PostSerializer(serializers.ModelSerializer):
 
 class PostCreateSerializer(serializers.ModelSerializer):
     """
-    Сериализатор для создания поста
+    Сериализатор для создания поста/сообщения (по ТЗ)
     """
     class Meta:
         model = Post
-        fields = ['title', 'description', 'status']
+        fields = ['title', 'description', 'address', 'latitude', 'longitude', 'status']
     
     def create(self, validated_data):
         validated_data['author'] = self.context['request'].user
@@ -217,11 +220,11 @@ class PostCreateSerializer(serializers.ModelSerializer):
 
 class PostUpdateSerializer(serializers.ModelSerializer):
     """
-    Сериализатор для обновления поста
+    Сериализатор для обновления поста/сообщения
     """
     class Meta:
         model = Post
-        fields = ['title', 'description', 'status']
+        fields = ['title', 'description', 'address', 'latitude', 'longitude', 'status']
 
 
 class PostPhotoUploadSerializer(serializers.Serializer):
@@ -284,7 +287,8 @@ class PostPhotoUploadSerializer(serializers.Serializer):
 
 class PostListSerializer(serializers.ModelSerializer):
     """
-    Упрощенный сериализатор для списка постов
+    Упрощённый сериализатор для списка сообщений
+    тема сообщения, адрес, главная фотография
     """
     author_username = serializers.CharField(source='author.username')
     photo_count = serializers.IntegerField(read_only=True)
@@ -293,13 +297,29 @@ class PostListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = [
-            'id', 'title', 'author_username', 
-            'created_at', 'photo_count', 'preview_photo'
+            'id', 'title', 'address', 'latitude', 'longitude',
+            'author_username', 'created_at', 'photo_count', 'preview_photo'
         ]
     
     def get_preview_photo(self, obj):
-        """Возвращает URL первого фото для превью"""
+        """Возвращает полный URL первого (главного) фото для превью"""
         first = obj.photos.first()
-        if first:
+        if first and first.photo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(first.photo.url)
             return first.photo.url
         return None
+
+
+# === Nominatim / адреса ===
+class AddressReverseSerializer(serializers.Serializer):
+    """Запрос обратного геокодирования: координаты → адрес"""
+    lat = serializers.FloatField(min_value=-90, max_value=90)
+    lon = serializers.FloatField(min_value=-180, max_value=180)
+
+
+class AddressSearchSerializer(serializers.Serializer):
+    """Поиск по имени/адресу"""
+    q = serializers.CharField(min_length=2, max_length=200)
+    limit = serializers.IntegerField(default=5, min_value=1, max_value=10)
