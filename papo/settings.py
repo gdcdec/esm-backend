@@ -15,6 +15,9 @@ import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# URL и путь для медиа-файлов (загруженных пользователями)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
@@ -24,6 +27,11 @@ SECRET_KEY = 'django-insecure-7%xqsta6t*as+f0cn37=oss2ney)jpcd6nsq@o*$p5jlxpjh%)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+
+if DEBUG:
+    # Только для режима разработки
+    import mimetypes
+    mimetypes.add_type("application/javascript", ".js", True)
 
 ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0').split(',')
 
@@ -68,11 +76,15 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 # Настройки REST Framework
 REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',  # Разрешить всем (для начала)
+        'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_RENDERER_CLASSES': [
-        'rest_framework.renderers.JSONRenderer',  # Только JSON
+        'rest_framework.renderers.JSONRenderer',
     ],
     'DEFAULT_PARSER_CLASSES': [
         'rest_framework.parsers.JSONParser',
@@ -116,7 +128,7 @@ DATABASES = {
 }
 
 # Who are the users?
-AUTH_USER_MODEL = 'api.CustomUser' #Какая модель будет отвечать за пользователя
+AUTH_USER_MODEL = 'api.CustomUser' # Какая модель будет отвечать за пользователя
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 

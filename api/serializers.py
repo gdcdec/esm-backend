@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import Rubric
 from .models import CustomUser
 from .models import PasswordReset
+from .models import Post, PostPhoto
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -47,10 +48,11 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return value
     
     def create(self, validated_data):
-        # Удаляем password2
-        validated_data.pop('password2')
+        # Удаляем password2 и теперь с проверкой, если фронты не отправят
+        if validated_data['password2']:
+            validated_data.pop('password2')
         
-        # ВАЖНО: Используем create_user, а не create!
+        
         # create_user хеширует пароль, create - сохраняет как есть
         user = CustomUser.objects.create_user(
             username=validated_data['username'],
@@ -142,3 +144,162 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
             raise serializers.ValidationError("Неверный код")
         
         return data
+    
+    
+# Posts
+class PostPhotoSerializer(serializers.ModelSerializer):
+    """Сериализатор для фотографий поста"""
+    photo_url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = PostPhoto
+        fields = ['id', 'photo', 'photo_url', 'order', 'caption', 'uploaded_at']
+        extra_kwargs = {
+            'photo': {'write_only': True},
+        }
+    
+    def get_photo_url(self, obj):
+        request = self.context.get('request')
+        if obj.photo and request:
+            return request.build_absolute_uri(obj.photo.url)
+        return None
+
+
+class PostSerializer(serializers.ModelSerializer):
+    """
+    Полный сериализатор для поста
+    """
+    author_username = serializers.CharField(source='author.username', read_only=True)
+    author_email = serializers.EmailField(source='author.email', read_only=True)
+    photos = PostPhotoSerializer(many=True, read_only=True)
+    photo_count = serializers.IntegerField(read_only=True)
+    first_photo = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Post
+        fields = [
+            'id',                # Номер поста
+            'title',              # Заголовок
+            'description',        # Описание
+            'author',             # ID автора
+            'author_username',    # Имя автора
+            'author_email',       # Email автора
+            'status',             # Статус
+            'created_at',         # Дата создания
+            'updated_at',         # Дата обновления
+            'published_at',       # Дата публикации
+            'photos',             # Список фото
+            'photo_count',        # Количество фото
+            'first_photo',        # Первое фото (для превью)
+        ]
+        read_only_fields = ['author', 'created_at', 'updated_at', 'published_at']
+    
+    def get_first_photo(self, obj):
+        """Возвращает первую фотографию для превью"""
+        first = obj.photos.first()
+        if first:
+            return PostPhotoSerializer(first, context=self.context).data
+        return None
+
+
+class PostCreateSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для создания поста
+    """
+    class Meta:
+        model = Post
+        fields = ['title', 'description', 'status']
+    
+    def create(self, validated_data):
+        validated_data['author'] = self.context['request'].user
+        return super().create(validated_data)
+
+
+class PostUpdateSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для обновления поста
+    """
+    class Meta:
+        model = Post
+        fields = ['title', 'description', 'status']
+
+
+class PostPhotoUploadSerializer(serializers.Serializer):
+    """
+    Сериализатор для загрузки фотографий к посту
+    """
+    post_id = serializers.IntegerField()
+    photos = serializers.ListField(
+        child=serializers.ImageField(),
+        write_only=True
+    )
+    captions = serializers.ListField(
+        child=serializers.CharField(required=False, allow_blank=True),
+        required=False
+    )
+    
+    def validate_post_id(self, value):
+        try:
+            post = Post.objects.get(id=value)
+            if post.author != self.context['request'].user:
+                raise serializers.ValidationError("Вы не автор этого поста")
+        except Post.DoesNotExist:
+            raise serializers.ValidationError("Пост не найден")
+        return value
+    
+    def validate(self, data):
+        
+        # Фото без подписей
+        if 'captions' in data and data['captions']:
+            # Если подписи есть, проверяем их количество только если они не пустые
+            if len(data['captions']) != len(data['photos']):
+                raise serializers.ValidationError(
+                    "Количество подписей должно соответствовать количеству фотографий"
+                )
+        return data
+    
+    def create(self, validated_data):
+        post = Post.objects.get(id=validated_data['post_id'])
+        photos = validated_data['photos']
+        
+        # Если подписей нет, создаем пустой список
+        captions = validated_data.get('captions', [])
+        
+        # Если подписей меньше чем фото, дополняем пустыми строками
+        if len(captions) < len(photos):
+            captions.extend([''] * (len(photos) - len(captions)))
+        
+        created_photos = []
+        for index, (photo, caption) in enumerate(zip(photos, captions)):
+            post_photo = PostPhoto.objects.create(
+                post=post,
+                photo=photo,
+                order=index,
+                caption=caption or ''  # Если caption None, используем пустую строку
+            )
+            created_photos.append(post_photo)
+        
+        return created_photos
+
+
+class PostListSerializer(serializers.ModelSerializer):
+    """
+    Упрощенный сериализатор для списка постов
+    """
+    author_username = serializers.CharField(source='author.username')
+    photo_count = serializers.IntegerField(read_only=True)
+    preview_photo = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Post
+        fields = [
+            'id', 'title', 'author_username', 
+            'created_at', 'photo_count', 'preview_photo'
+        ]
+    
+    def get_preview_photo(self, obj):
+        """Возвращает URL первого фото для превью"""
+        first = obj.photos.first()
+        if first:
+            return first.photo.url
+        return None

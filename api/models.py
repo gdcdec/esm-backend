@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.auth import get_user_model
 import random
 from datetime import datetime, timedelta
+from .validators import validate_image_size, validate_image_extension
 # api/models.py
 # Create your models here.
 
@@ -164,3 +165,156 @@ class PasswordReset(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.code}"
 
+
+# Контент
+class Post(models.Model):
+    """
+    Модель поста с заголовком, описанием, фотографиями и датами
+    """
+    # Основные поля
+    title = models.CharField(
+        max_length=200,
+        verbose_name="Заголовок",
+        help_text="Краткий заголовок поста (макс. 200 символов)",
+        null=True,  # Временно разрешаем NULL
+        blank=True  # Временно разрешаем пустое значение
+    )
+    
+    description = models.TextField(
+        verbose_name="Описание",
+        help_text="Полное описание или содержание поста",
+        blank=True  # Можно оставить пустым
+    )
+    
+    # Связь с автором #После продакшена убрать нулы
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='posts',
+        verbose_name="Автор",
+        null=True,  # Временно разрешаем NULL
+        blank=True  # Временно разрешаем пустое значение
+    )
+    
+    # Статус поста (опционально, для публикации/черновика)
+    STATUS_CHOICES = [
+        ('draft', 'Черновик'),
+        ('published', 'Опубликован'),
+        ('archived', 'В архиве'),
+    ]
+    
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='published',
+        verbose_name="Статус"
+    )
+    
+    # Дата создания - автоматически при создании
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Дата создания",
+        null=True,  # Временно разрешаем NULL
+        blank=True  # Временно разрешаем пустое значение
+    )
+    
+    # Дата обновления - автоматически при каждом сохранении
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Дата обновления"
+    )
+    
+    # Дата публикации
+    published_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Дата публикации"
+    )
+    
+    # Поле для мягкого удаления
+    is_deleted = models.BooleanField(
+        default=False,
+        verbose_name="Удален"
+    )
+    
+    class Meta:
+        ordering = ['-created_at', '-published_at']  # Сортировка по умолчанию
+        verbose_name = "Пост"
+        verbose_name_plural = "Посты"
+        indexes = [
+            models.Index(fields=['-created_at']),
+            models.Index(fields=['author', '-created_at']),
+            models.Index(fields=['status', '-created_at']),
+        ]
+    
+    def __str__(self):
+        return f"Пост #{self.id}: {self.title[:50]}"
+    
+    def save(self, *args, **kwargs):
+        # Если статус меняется на 'published' и не установлена дата публикации
+        if self.status == 'published' and not self.published_at:
+            from django.utils import timezone
+            self.published_at = timezone.now()
+        super().save(*args, **kwargs)
+    
+    @property
+    def photo_count(self):
+        """Количество фотографий в посте"""
+        return self.photos.count()
+    
+    @property
+    def first_photo(self):
+        """Первая фотография поста (для превью)"""
+        return self.photos.first()
+
+
+class PostPhoto(models.Model):
+    """
+    Модель фотографии поста
+    """
+    post = models.ForeignKey(
+        Post,
+        on_delete=models.CASCADE,
+        related_name='photos',
+        verbose_name="Пост"
+    )
+    
+    photo = models.ImageField(
+        upload_to='posts/%Y/%m/%d/',
+        validators=[validate_image_size, validate_image_extension],
+        verbose_name="Фотография"
+    )
+    
+    # Порядковый номер для сортировки
+    order = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Порядок"
+    )
+    
+    # Подпись к фото
+    caption = models.CharField(
+        max_length=200,
+        blank=True,# Я не думаю, что при загрузке они будут каждое фото описывать, в serializer тоже обусловится
+        verbose_name="Подпись"
+    )
+    
+    uploaded_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Дата загрузки"
+    )
+    
+    class Meta:
+        ordering = ['order', 'id']
+        verbose_name = "Фотография поста"
+        verbose_name_plural = "Фотографии поста"
+    
+    def __str__(self):
+        return f"Фото {self.order} для поста #{self.post_id}"
+    
+    def delete(self, *args, **kwargs):
+        # При удалении записи удаляем и файл
+        if self.photo:
+            storage = self.photo.storage
+            if storage.exists(self.photo.name):
+                storage.delete(self.photo.name)
+        super().delete(*args, **kwargs)

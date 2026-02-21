@@ -2,7 +2,20 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
-from .views import CustomAuthToken, UserRegistrationView
+from .views import (
+    CustomAuthToken, 
+    UserRegistrationView, 
+    LogoutView,
+    ChangePasswordView,
+    PasswordResetRequestView,
+    PasswordResetVerifyView,
+    PasswordResetConfirmView,
+    # Добавляем новые импорты для постов
+    PostListView,
+    PostDetailView,
+    PostPhotoUploadView,
+    PostPhotoDeleteView
+)
 
 # router используем когда с таблицей однотипные действия делают
 router = DefaultRouter()
@@ -15,6 +28,16 @@ urlpatterns = [
         # Маршруты от роутера (будут /api/rubrics/, /api/rubrics/1/)
         path('', include(router.urls)),
         
+        # Посты
+        path('posts/', views.PostListView.as_view(), name='post-list'),
+        path('posts/<int:pk>/', views.PostDetailView.as_view(), name='post-detail'),
+        path('users/<int:user_id>/posts/', views.UserPostListView.as_view(), name='user-posts'),
+        
+        # Фотографии постов
+        path('posts/photos/upload/', views.PostPhotoUploadView.as_view(), name='post-photo-upload'),
+        path('posts/photos/<int:pk>/', views.PostPhotoDeleteView.as_view(), name='post-photo-delete'),
+        
+        
         # Аутентификация
         path('auth/', include([
             path('register/', UserRegistrationView.as_view(), name='user-register'),
@@ -25,7 +48,10 @@ urlpatterns = [
             path('password-reset/verify/', views.PasswordResetVerifyView.as_view(), name='password-reset-verify'),
             path('password-reset/confirm/', views.PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
             path('password-reset/status/<str:email>/', views.PasswordResetStatusView.as_view(), name='password-reset-status'),
+            
+            
         ])),
+        
     
 ]
 
