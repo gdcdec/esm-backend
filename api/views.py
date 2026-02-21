@@ -28,10 +28,14 @@ from .serializers import (
     PostPhotoSerializer, 
     PostPhotoUploadSerializer,
     PostListSerializer,
-    PostUpdateSerializer
+    PostUpdateSerializer,
+    AddressReverseSerializer,
+    AddressSearchSerializer,
 )
-from datetime import datetime, timedelta#!
+from datetime import datetime, timedelta
+from django.conf import settings
 from .utils.email_utils import send_password_reset_email
+from .utils.nominatim import reverse_geocode, search, parse_reverse_response
 
 User = get_user_model()
 # Create your views here.
@@ -450,3 +454,87 @@ class PostPhotoDeleteView(generics.DestroyAPIView):
         if obj.post.author != request.user:
             self.permission_denied(request, "Вы не автор этого поста")
         return super().check_object_permissions(request, obj)
+
+
+# === Nominatim / адреса
+class AddressReverseView(APIView):
+    """
+    Обратное геокодирование: координаты → адрес (Nominatim reverse).
+    Проверяет, входит ли точка в районы работы проекта.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = AddressReverseSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        lat = serializer.validated_data['lat']
+        lon = serializer.validated_data['lon']
+
+        data, err = reverse_geocode(lat, lon)
+        if not data:
+            msg = err or 'Не удалось определить адрес по координатам'
+            return Response(
+                {'error': msg},
+                status=status.HTTP_502_BAD_GATEWAY
+            )
+
+        parsed = parse_reverse_response(data)
+        working_areas = getattr(
+            settings, 'PROJECT_WORKING_AREAS', ['Самара', 'Самарская область']
+        )
+        city = parsed.get('city') or ''
+        state = parsed.get('state') or ''
+        in_working_area = any(
+            area.lower() in (city + ' ' + state).lower()
+            for area in working_areas
+            if area
+        )
+
+        if not in_working_area:
+            return Response({
+                'in_working_area': False,
+                'message': 'В данном районе проект пока не работает',
+                'address': parsed.get('address', ''),
+                'latitude': parsed.get('latitude'),
+                'longitude': parsed.get('longitude'),
+                'city': parsed.get('city'),
+                'street': parsed.get('street'),
+                'house': parsed.get('house'),
+            }, status=status.HTTP_200_OK)
+
+        return Response({
+            'in_working_area': True,
+            'address': parsed.get('address', ''),
+            'latitude': parsed.get('latitude'),
+            'longitude': parsed.get('longitude'),
+            'city': parsed.get('city'),
+            'street': parsed.get('street'),
+            'house': parsed.get('house'),
+        }, status=status.HTTP_200_OK)
+
+
+class AddressSearchView(APIView):
+    """
+    Поиск по имени/адресу (Nominatim search).
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        serializer = AddressSearchSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        q = serializer.validated_data['q']
+        limit = serializer.validated_data['limit']
+
+        results = search(q, limit=limit)
+        out = []
+        for r in results:
+            addr = r.get('address', {}) or {}
+            out.append({
+                'display_name': r.get('display_name', ''),
+                'latitude': float(r.get('lat', 0)),
+                'longitude': float(r.get('lon', 0)),
+                'city': addr.get('city') or addr.get('town') or addr.get('village'),
+                'street': addr.get('road'),
+                'house': addr.get('house_number'),
+            })
+        return Response(out, status=status.HTTP_200_OK)
