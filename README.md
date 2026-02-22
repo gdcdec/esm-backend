@@ -19,9 +19,10 @@ python manage.py runserver
 
 ### Docker
 
+Необходимо запустить shell-скрипт от имени привилигированного пользователя:
+
 ```bash
-docker-compose up -d --build
-docker exec -it django-app python manage.py migrate
+sudo ./run_compose.sh
 ```
 
 API: `http://localhost:8000/api/`
