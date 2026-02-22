@@ -27,6 +27,7 @@ services:
     environment:
       - PGADMIN_DEFAULT_EMAIL=admin@admin.com
       - PGADMIN_DEFAULT_PASSWORD=admin
+      - PYTHONWARNINGS=ignore
     volumes:
       - ./pgadmin_data:/var/lib/pgadmin
     ports:
@@ -36,6 +37,17 @@ services:
     depends_on:
       - postgres-db
     restart: unless-stopped
+    user: root
+    entrypoint: >
+      sh -c "
+      echo '🔧 Настройка прав доступа для pgAdmin...' &&
+      mkdir -p /var/lib/pgadmin/sessions &&
+      mkdir -p /var/lib/pgadmin/storage &&
+      chmod 777 /var/lib/pgadmin/sessions &&
+      chmod 777 /var/lib/pgadmin/storage &&
+      echo '✅ Права настроены, запуск pgAdmin...' &&
+      exec /entrypoint.sh
+      "
 
   django:
     build: .

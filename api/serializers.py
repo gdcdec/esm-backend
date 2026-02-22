@@ -9,9 +9,11 @@ User = get_user_model()
 
 
 class RubricSerializer(serializers.ModelSerializer):
+    posts_count = serializers.IntegerField(source='posts.count', read_only=True)
+    
     class Meta:
         model = Rubric
-        fields = ['name', 'counter']  # id не нужен, так как name - это и есть первичный ключ
+        fields = ['name', 'counter', 'posts_count'] # id не нужен, так как name - это и есть первичный ключ
         read_only_fields = ['counter']  # счётчик только для чтения через API
     
     def validate_name(self, value):
@@ -146,7 +148,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         return data
     
     
-# Posts
+# Posts & Photos
 class PostPhotoSerializer(serializers.ModelSerializer):
     """Сериализатор для фотографий поста"""
     photo_url = serializers.SerializerMethodField()
@@ -174,7 +176,7 @@ class PostSerializer(serializers.ModelSerializer):
     photos = PostPhotoSerializer(many=True, read_only=True)
     photo_count = serializers.IntegerField(read_only=True)
     first_photo = serializers.SerializerMethodField()
-    
+    rubric_name = serializers.CharField(source='rubric.name', read_only=True)
     class Meta:
         model = Post
         fields = [
@@ -184,6 +186,8 @@ class PostSerializer(serializers.ModelSerializer):
             'address',            # Адрес события (по ТЗ)
             'latitude',           # Широта (координаты)
             'longitude',          # Долгота (координаты)
+            'rubric',             # ID рубрики (для записи)
+            'rubric_name',        # Имя рубрики (для отображения)
             'author',             # ID автора
             'author_username',    # Имя автора
             'author_email',       # Email автора
@@ -211,7 +215,7 @@ class PostCreateSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Post
-        fields = ['title', 'description', 'address', 'latitude', 'longitude', 'status']
+        fields = ['title', 'description', 'address', 'latitude', 'longitude', 'rubric', 'status']
     
     def create(self, validated_data):
         validated_data['author'] = self.context['request'].user
@@ -224,7 +228,7 @@ class PostUpdateSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Post
-        fields = ['title', 'description', 'address', 'latitude', 'longitude', 'status']
+        fields = ['title', 'description', 'address', 'latitude', 'longitude', 'rubric','status']
 
 
 class PostPhotoUploadSerializer(serializers.Serializer):
@@ -293,11 +297,13 @@ class PostListSerializer(serializers.ModelSerializer):
     author_username = serializers.CharField(source='author.username')
     photo_count = serializers.IntegerField(read_only=True)
     preview_photo = serializers.SerializerMethodField()
+    rubric_name = serializers.CharField(source='rubric.name', read_only=True)
     
     class Meta:
         model = Post
         fields = [
             'id', 'title', 'address', 'latitude', 'longitude',
+            'rubric_name',
             'author_username', 'created_at', 'photo_count', 'preview_photo'
         ]
     

@@ -1,8 +1,11 @@
 {
   "info": {
+    "_postman_id": "6a7bd585-bb14-4dc5-97c9-923f3c73e384",
     "name": "Posts and Photos Tests",
     "description": "Полное тестирование постов и фотографий",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "43786527",
+    "_collection_link": "https://go.postman.co/collection/43786527-6a7bd585-bb14-4dc5-97c9-923f3c73e384?source=collection_link"
   },
   "item": [
     {
@@ -24,7 +27,8 @@
                   "pm.environment.set(\"user_id\", response.user_id);",
                   "console.log(\"🔑 Токен:\", response.token);",
                   "console.log(\"👤 User ID:\", response.user_id);"
-                ]
+                ],
+                "type": "text/javascript"
               }
             }
           ],
@@ -36,12 +40,23 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url}}/auth/login/",
             "body": {
               "mode": "raw",
               "raw": "{\n    \"username\": \"testuser\",\n    \"password\": \"testpass123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login",
+                ""
+              ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "2. Регистрация (если нужно)",
@@ -55,7 +70,8 @@
                   "} else if (pm.response.code === 400) {",
                   "    console.log(\"⚠️ Пользователь уже существует\");",
                   "}"
-                ]
+                ],
+                "type": "text/javascript"
               }
             }
           ],
@@ -67,12 +83,23 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url}}/auth/register/",
             "body": {
               "mode": "raw",
               "raw": "{\n    \"username\": \"testuser\",\n    \"email\": \"test@example.com\",\n    \"password\": \"testpass123\",\n    \"password2\": \"testpass123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register",
+                ""
+              ]
             }
-          }
+          },
+          "response": []
         }
       ]
     },
@@ -110,7 +137,10 @@
                   "});",
                   "",
                   "console.log(`📝 Пост создан: ID=${response.id}, Заголовок=\"${response.title}\"`);"
-                ]
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
               }
             },
             {
@@ -121,7 +151,10 @@
                   "const title = `Тестовый пост ${timestamp}`;",
                   "pm.variables.set(\"post_title\", title);",
                   "console.log(`📝 Создаем пост: \"${title}\"`);"
-                ]
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
               }
             }
           ],
@@ -137,12 +170,22 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url}}/posts/",
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"title\": \"{{post_title}}\",\n    \"description\": \"Это тестовый пост, созданный в Postman для проверки функционала\",\n    \"address\": \"ул. Ленина, 1\",\n    \"latitude\": 55.7558,\n    \"longitude\": 37.6173,\n    \"status\": \"published\"\n}"
+              "raw": "{\n    \"title\": \"{{post_title}}\",\n    \"description\": \"Это тестовый пост, созданный в Postman для проверки функционала\",\n    \"address\": \"ул. Ленина, 1\",\n    \"latitude\": 55.7558,\n    \"longitude\": 37.6173,\n    \"status\": \"published\",\n    \"rubric\": \"Новости2\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/posts/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                ""
+              ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Получить все посты",
@@ -174,7 +217,8 @@
                   "});",
                   "",
                   "console.log(`📊 Всего постов: ${response.length}`);"
-                ]
+                ],
+                "type": "text/javascript"
               }
             }
           ],
@@ -186,8 +230,82 @@
                 "value": "Token {{auth_token}}"
               }
             ],
-            "url": "{{base_url}}/posts/"
-          }
+            "url": {
+              "raw": "{{base_url}}/posts/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Получить все посты по рубрике",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"✅ Статус 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "",
+                  "pm.test(\"✅ Ответ - это массив\", function() {",
+                  "    pm.expect(response).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"✅ В массиве есть посты\", function() {",
+                  "    pm.expect(response.length).to.be.at.least(1);",
+                  "});",
+                  "",
+                  "pm.test(\"✅ У каждого поста есть обязательные поля\", function() {",
+                  "    response.forEach(post => {",
+                  "        pm.expect(post).to.have.property('id');",
+                  "        pm.expect(post).to.have.property('title');",
+                  "        pm.expect(post).to.have.property('photo_count');",
+                  "    });",
+                  "});",
+                  "",
+                  "console.log(`📊 Всего постов: ${response.length}`);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/posts/?rubric=Новости",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "rubric",
+                  "value": "Новости"
+                }
+              ]
+            }
+          },
+          "response": []
         },
         {
           "name": "Получить конкретный пост",
@@ -221,7 +339,8 @@
                   "",
                   "console.log(`📄 Пост #${response.id}: \"${response.title}\"`);",
                   "console.log(`📸 Фото: ${response.photo_count}`);"
-                ]
+                ],
+                "type": "text/javascript"
               }
             }
           ],
@@ -233,8 +352,19 @@
                 "value": "Token {{auth_token}}"
               }
             ],
-            "url": "{{base_url}}/posts/{{post_id}}/"
-          }
+            "url": {
+              "raw": "{{base_url}}/posts/{{post_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "{{post_id}}",
+                ""
+              ]
+            }
+          },
+          "response": []
         },
         {
           "name": "Обновить пост",
@@ -259,7 +389,8 @@
                   "",
                   "console.log(`✏️ Пост #${response.id} обновлен`);",
                   "console.log(`   Новый заголовок: \"${response.title}\"`);"
-                ]
+                ],
+                "type": "text/javascript"
               }
             },
             {
@@ -269,7 +400,8 @@
                   "const timestamp = Date.now();",
                   "const updatedTitle = `ОБНОВЛЕННЫЙ пост ${timestamp}`;",
                   "pm.variables.set(\"updated_title\", updatedTitle);"
-                ]
+                ],
+                "type": "text/javascript"
               }
             }
           ],
@@ -285,12 +417,23 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url}}/posts/{{post_id}}/",
             "body": {
               "mode": "raw",
               "raw": "{\n    \"title\": \"{{updated_title}}\",\n    \"description\": \"Это описание было ОБНОВЛЕНО через PATCH запрос\",\n    \"address\": \"ул. Мира, 5\",\n    \"latitude\": 55.76,\n    \"longitude\": 37.62,\n    \"status\": \"published\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/posts/{{post_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "{{post_id}}",
+                ""
+              ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Получить посты пользователя",
@@ -316,7 +459,8 @@
                   "});",
                   "",
                   "console.log(`👤 Постов пользователя testuser: ${response.length}`);"
-                ]
+                ],
+                "type": "text/javascript"
               }
             }
           ],
@@ -328,8 +472,80 @@
                 "value": "Token {{auth_token}}"
               }
             ],
-            "url": "{{base_url}}/users/{{user_id}}/posts/"
-          }
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}/posts/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "{{user_id}}",
+                "posts",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Получить посты пользователя по рубрике",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"✅ Статус 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "",
+                  "pm.test(\"✅ Ответ - массив\", function() {",
+                  "    pm.expect(response).to.be.an('array');",
+                  "});",
+                  "",
+                  "response.forEach(post => {",
+                  "    pm.test(`✅ Пост #${post.id} принадлежит пользователю`, function() {",
+                  "        pm.expect(post.author_username).to.eql('testuser');",
+                  "    });",
+                  "});",
+                  "",
+                  "console.log(`👤 Постов пользователя testuser: ${response.length}`);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}/posts/?rubric=Новости",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "{{user_id}}",
+                "posts",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "rubric",
+                  "value": "Новости"
+                }
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -369,7 +585,8 @@
                   "",
                   "console.log(`✅ Фото загружено, ID: ${photo.id}`);",
                   "console.log(`📸 URL: ${photo.photo_url}`);"
-                ]
+                ],
+                "type": "text/javascript"
               }
             }
           ],
@@ -381,7 +598,6 @@
                 "value": "Token {{auth_token}}"
               }
             ],
-            "url": "{{base_url}}/posts/photos/upload/",
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -401,8 +617,21 @@
                   "type": "text"
                 }
               ]
+            },
+            "url": {
+              "raw": "{{base_url}}/posts/photos/upload/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "photos",
+                "upload",
+                ""
+              ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Загрузить несколько фото",
@@ -435,7 +664,8 @@
                   "response.forEach((photo, i) => {",
                   "    console.log(`   ${i+1}. ${photo.caption}: ${photo.photo_url}`);",
                   "});"
-                ]
+                ],
+                "type": "text/javascript"
               }
             }
           ],
@@ -447,7 +677,6 @@
                 "value": "Token {{auth_token}}"
               }
             ],
-            "url": "{{base_url}}/posts/photos/upload/",
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -487,8 +716,21 @@
                   "type": "text"
                 }
               ]
+            },
+            "url": {
+              "raw": "{{base_url}}/posts/photos/upload/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "photos",
+                "upload",
+                ""
+              ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Проверить пост после загрузки фото",
@@ -515,7 +757,8 @@
                   "});",
                   "",
                   "console.log(`📊 Пост #${response.id} теперь содержит ${response.photo_count} фото`);"
-                ]
+                ],
+                "type": "text/javascript"
               }
             }
           ],
@@ -527,8 +770,19 @@
                 "value": "Token {{auth_token}}"
               }
             ],
-            "url": "{{base_url}}/posts/{{post_id}}/"
-          }
+            "url": {
+              "raw": "{{base_url}}/posts/{{post_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "{{post_id}}",
+                ""
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -545,7 +799,8 @@
                   "pm.test(\"❌ Статус 401 - неавторизован\", function() {",
                   "    pm.response.to.have.status(401);",
                   "});"
-                ]
+                ],
+                "type": "text/javascript"
               }
             }
           ],
@@ -557,12 +812,22 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url}}/posts/",
             "body": {
               "mode": "raw",
               "raw": "{\n    \"title\": \"Неавторизованный пост\",\n    \"description\": \"Этот пост не должен создаться\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/posts/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                ""
+              ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Создать пост без заголовка",
@@ -581,7 +846,8 @@
                   "        pm.expect(response).to.have.property('title');",
                   "    });",
                   "}"
-                ]
+                ],
+                "type": "text/javascript"
               }
             }
           ],
@@ -597,12 +863,22 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url}}/posts/",
             "body": {
               "mode": "raw",
               "raw": "{\n    \"description\": \"Пост без заголовка\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/posts/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                ""
+              ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Получить несуществующий пост",
@@ -614,7 +890,8 @@
                   "pm.test(\"❌ Статус 404 - не найден\", function() {",
                   "    pm.response.to.have.status(404);",
                   "});"
-                ]
+                ],
+                "type": "text/javascript"
               }
             }
           ],
@@ -626,8 +903,19 @@
                 "value": "Token {{auth_token}}"
               }
             ],
-            "url": "{{base_url}}/posts/999999/"
-          }
+            "url": {
+              "raw": "{{base_url}}/posts/999999/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "999999",
+                ""
+              ]
+            }
+          },
+          "response": []
         },
         {
           "name": "Обновить чужой пост",
@@ -639,7 +927,8 @@
                   "pm.test(\"❌ Статус 403 - запрещено\", function() {",
                   "    pm.expect(pm.response.code).to.be.oneOf([403, 404]);",
                   "});"
-                ]
+                ],
+                "type": "text/javascript"
               }
             }
           ],
@@ -655,12 +944,23 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url}}/posts/1/",
             "body": {
               "mode": "raw",
               "raw": "{\n    \"title\": \"Попытка взлома\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/posts/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "1",
+                ""
+              ]
             }
-          }
+          },
+          "response": []
         }
       ]
     },
@@ -677,14 +977,14 @@
                   "pm.test(\"❌ Статус 401 - неавторизован\", function() {",
                   "    pm.response.to.have.status(401);",
                   "});"
-                ]
+                ],
+                "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "POST",
             "header": [],
-            "url": "{{base_url}}/posts/photos/upload/",
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -694,8 +994,21 @@
                   "type": "text"
                 }
               ]
+            },
+            "url": {
+              "raw": "{{base_url}}/posts/photos/upload/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "photos",
+                "upload",
+                ""
+              ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Загрузить фото к чужому посту",
@@ -712,7 +1025,8 @@
                   "pm.test(\"❌ Есть ошибка\", function() {",
                   "    pm.expect(response).to.have.property('post_id');",
                   "});"
-                ]
+                ],
+                "type": "text/javascript"
               }
             }
           ],
@@ -724,7 +1038,6 @@
                 "value": "Token {{auth_token}}"
               }
             ],
-            "url": "{{base_url}}/posts/photos/upload/",
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -734,8 +1047,21 @@
                   "type": "text"
                 }
               ]
+            },
+            "url": {
+              "raw": "{{base_url}}/posts/photos/upload/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "photos",
+                "upload",
+                ""
+              ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Загрузить не изображение",
@@ -747,7 +1073,8 @@
                   "pm.test(\"❌ Статус 400\", function() {",
                   "    pm.response.to.have.status(400);",
                   "});"
-                ]
+                ],
+                "type": "text/javascript"
               }
             }
           ],
@@ -759,7 +1086,6 @@
                 "value": "Token {{auth_token}}"
               }
             ],
-            "url": "{{base_url}}/posts/photos/upload/",
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -774,8 +1100,21 @@
                   "src": "/path/to/your/test/document.txt"
                 }
               ]
+            },
+            "url": {
+              "raw": "{{base_url}}/posts/photos/upload/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "photos",
+                "upload",
+                ""
+              ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Загрузить слишком большое фото",
@@ -787,7 +1126,8 @@
                   "pm.test(\"❌ Статус 400\", function() {",
                   "    pm.response.to.have.status(400);",
                   "});"
-                ]
+                ],
+                "type": "text/javascript"
               }
             }
           ],
@@ -799,7 +1139,6 @@
                 "value": "Token {{auth_token}}"
               }
             ],
-            "url": "{{base_url}}/posts/photos/upload/",
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -814,8 +1153,21 @@
                   "src": "/path/to/your/test/large_photo.jpg"
                 }
               ]
+            },
+            "url": {
+              "raw": "{{base_url}}/posts/photos/upload/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "photos",
+                "upload",
+                ""
+              ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Удалить чужое фото",
@@ -827,7 +1179,8 @@
                   "pm.test(\"❌ Статус 403 или 404\", function() {",
                   "    pm.expect(pm.response.code).to.be.oneOf([403, 404]);",
                   "});"
-                ]
+                ],
+                "type": "text/javascript"
               }
             }
           ],
@@ -839,8 +1192,20 @@
                 "value": "Token {{auth_token}}"
               }
             ],
-            "url": "{{base_url}}/posts/photos/1/"
-          }
+            "url": {
+              "raw": "{{base_url}}/posts/photos/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "photos",
+                "1",
+                ""
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -858,7 +1223,8 @@
                   "    pm.response.to.have.status(204);",
                   "});",
                   "console.log(\"✅ Фото удалено\");"
-                ]
+                ],
+                "type": "text/javascript"
               }
             }
           ],
@@ -870,8 +1236,20 @@
                 "value": "Token {{auth_token}}"
               }
             ],
-            "url": "{{base_url}}/posts/photos/{{photo_id}}/"
-          }
+            "url": {
+              "raw": "{{base_url}}/posts/photos/{{photo_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "photos",
+                "{{photo_id}}",
+                ""
+              ]
+            }
+          },
+          "response": []
         },
         {
           "name": "Удалить пост",
@@ -884,7 +1262,8 @@
                   "    pm.response.to.have.status(204);",
                   "});",
                   "console.log(\"✅ Пост удален\");"
-                ]
+                ],
+                "type": "text/javascript"
               }
             }
           ],
@@ -896,8 +1275,19 @@
                 "value": "Token {{auth_token}}"
               }
             ],
-            "url": "{{base_url}}/posts/{{post_id}}/"
-          }
+            "url": {
+              "raw": "{{base_url}}/posts/{{post_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "{{post_id}}",
+                ""
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -908,20 +1298,58 @@
           "name": "Координаты → адрес (reverse)",
           "request": {
             "method": "POST",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
-            "url": "{{base_url}}/address/reverse/",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n    \"lat\": 53.225674,\n    \"lon\": 50.194162\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/address/reverse/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "address",
+                "reverse",
+                ""
+              ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Поиск по адресу (search)",
           "request": {
             "method": "GET",
-            "url": "{{base_url}}/address/search/?q=Самара московское шоссе 77&limit=5"
-          }
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/address/search/?q=Самара московское шоссе 77&limit=5",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "address",
+                "search",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "Самара московское шоссе 77"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "response": []
         }
       ]
     }

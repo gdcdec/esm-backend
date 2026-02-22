@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.db import models 
+from django.db.models import Q
 from rest_framework import viewsets, status, generics, permissions
 from rest_framework.decorators import action
 from rest_framework.views import APIView
@@ -315,61 +316,55 @@ class PasswordResetStatusView(APIView):
             }, status=status.HTTP_404_NOT_FOUND)
             
 # Posts
-        """
-        GET /api/posts/ - список постов
-
-        POST /api/posts/ - создание поста
-
-        GET /api/posts/<id>/ - детали поста
-
-        PUT/PATCH /api/posts/<id>/ - обновление поста
-
-        DELETE /api/posts/<id>/ - удаление поста
-
-        POST /api/posts/photos/upload/ - загрузка фото
-
-        DELETE /api/posts/photos/<id>/ - удаление фото
-        """
 class PostListView(generics.ListCreateAPIView):
     """
-    Список постов и создание нового поста
+    GET /api/posts/ - список постов (с фильтрацией по рубрике)
+        Параметры:
+        - rubric: фильтр по названию рубрики (например, ?rubric=Новости)
+    
+    POST /api/posts/ - создание поста
     """
-    authentication_classes = [TokenAuthentication] # Без него не сканит токен? Да, надо добавлять
+    authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     
     def get_serializer_class(self):
         if self.request.method == 'POST':
             return PostCreateSerializer
-        # Для списка используем упрощенный сериализатор
         return PostListSerializer
     
     def get_queryset(self):
-        # Фильтруем по статусу для разных пользователей
         user = self.request.user
         
+        # Базовый queryset
+        queryset = Post.objects.select_related('author', 'rubric').prefetch_related('photos')
+        
+        # ФИЛЬТРАЦИЯ ПО РУБРИКЕ
+        rubric_name = self.request.query_params.get('rubric', None)
+        if rubric_name:
+            queryset = queryset.filter(rubric__name=rubric_name)
+        
+        # Фильтрация по статусу в зависимости от пользователя
         if user.is_authenticated:
-            # Авторизованные видят свои черновики и все опубликованные
-            return Post.objects.filter(
-                models.Q(status='published') | 
-                models.Q(author=user)
-            ).select_related('author').prefetch_related('photos')
+            queryset = queryset.filter(
+                Q(status='published') | Q(author=user)
+            )
         else:
-            # Анонимные видят только опубликованные
-            return Post.objects.filter(
-                status='published'
-            ).select_related('author').prefetch_related('photos')
+            queryset = queryset.filter(status='published')
+        
+        return queryset
     
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-
 class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
-    Детали поста, обновление, удаление
+    GET /api/posts/<id>/ - детали поста
+    PUT/PATCH /api/posts/<id>/ - обновление поста
+    DELETE /api/posts/<id>/ - удаление поста
     """
-    authentication_classes = [TokenAuthentication] # Без него не сканит токен? Да, надо добавлять
+    authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    queryset = Post.objects.all().select_related('author').prefetch_related('photos')
+    queryset = Post.objects.select_related('author', 'rubric').prefetch_related('photos')
     
     def get_serializer_class(self):
         if self.request.method in ['PUT', 'PATCH']:
@@ -379,11 +374,9 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
     def check_object_permissions(self, request, obj):
         # Проверка прав доступа
         if request.method in ['PUT', 'PATCH', 'DELETE']:
-            # Только автор может редактировать/удалять
             if obj.author != request.user:
                 self.permission_denied(request, "Вы не автор этого поста")
         
-        # Для чтения проверяем статус
         if request.method == 'GET':
             if obj.status != 'published' and obj.author != request.user:
                 self.permission_denied(request, "Пост не опубликован")
@@ -393,7 +386,9 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class UserPostListView(generics.ListAPIView):
     """
-    Список постов конкретного пользователя
+    GET /api/users/<user_id>/posts/ - список постов пользователя
+        Параметры:
+        - rubric: фильтр по названию рубрики (например, ?rubric=Новости)
     """
     serializer_class = PostListSerializer
     permission_classes = [permissions.AllowAny]
@@ -402,17 +397,25 @@ class UserPostListView(generics.ListAPIView):
         user_id = self.kwargs['user_id']
         user = self.request.user
         
+        # ФИЛЬТРАЦИЯ ПО РУБРИКЕ
+        rubric_name = self.request.query_params.get('rubric', None)
+        
+        # Базовый queryset для пользователя
         if user.is_authenticated and user.id == user_id:
             # Свои посты (включая черновики)
-            return Post.objects.filter(
-                author_id=user_id
-            ).select_related('author').prefetch_related('photos')
+            queryset = Post.objects.filter(author_id=user_id)
         else:
             # Чужие посты (только опубликованные)
-            return Post.objects.filter(
+            queryset = Post.objects.filter(
                 author_id=user_id,
                 status='published'
-            ).select_related('author').prefetch_related('photos')
+            )
+        
+        # Применяем фильтр по рубрике, если указан
+        if rubric_name:
+            queryset = queryset.filter(rubric__name=rubric_name)
+        
+        return queryset.select_related('author', 'rubric').prefetch_related('photos')
             
 class PostPhotoUploadView(generics.CreateAPIView):
     """
