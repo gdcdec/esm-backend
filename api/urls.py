@@ -10,15 +10,18 @@ from .views import (
     PasswordResetRequestView,
     PasswordResetVerifyView,
     PasswordResetConfirmView,
-    # Добавляем новые импорты для постов
     PostListView,
     PostDetailView,
     PostPhotoUploadView,
-    PostPhotoDeleteView
+    PostPhotoDeleteView,
+    AddressReverseView,
+    AddressSearchView,
+    RubricViewSet,
 )
 
 # router используем когда с таблицей однотипные действия делают
 router = DefaultRouter()
+# используем роутер потому что всё в 1 view определилось 
 router.register(r'rubrics', views.RubricViewSet, basename='rubric')
 
 
@@ -28,6 +31,8 @@ urlpatterns = [
         # Маршруты от роутера (будут /api/rubrics/, /api/rubrics/1/)
         path('', include(router.urls)),
         
+        
+        
         # Посты
         path('posts/', views.PostListView.as_view(), name='post-list'),
         path('posts/<int:pk>/', views.PostDetailView.as_view(), name='post-detail'),
@@ -36,7 +41,9 @@ urlpatterns = [
         # Фотографии постов
         path('posts/photos/upload/', views.PostPhotoUploadView.as_view(), name='post-photo-upload'),
         path('posts/photos/<int:pk>/', views.PostPhotoDeleteView.as_view(), name='post-photo-delete'),
-        
+        # Nominatim: координаты → адрес, поиск
+        path('address/reverse/', views.AddressReverseView.as_view(), name='address-reverse'),
+        path('address/search/', views.AddressSearchView.as_view(), name='address-search'),
         
         # Аутентификация
         path('auth/', include([

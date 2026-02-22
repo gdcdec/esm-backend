@@ -9,9 +9,11 @@ User = get_user_model()
 
 
 class RubricSerializer(serializers.ModelSerializer):
+    posts_count = serializers.IntegerField(source='posts.count', read_only=True)
+    
     class Meta:
         model = Rubric
-        fields = ['name', 'counter']  # id не нужен, так как name - это и есть первичный ключ
+        fields = ['name', 'counter', 'posts_count'] # id не нужен, так как name - это и есть первичный ключ
         read_only_fields = ['counter']  # счётчик только для чтения через API
     
     def validate_name(self, value):
@@ -146,7 +148,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         return data
     
     
-# Posts
+# Posts & Photos
 class PostPhotoSerializer(serializers.ModelSerializer):
     """Сериализатор для фотографий поста"""
     photo_url = serializers.SerializerMethodField()
@@ -174,13 +176,18 @@ class PostSerializer(serializers.ModelSerializer):
     photos = PostPhotoSerializer(many=True, read_only=True)
     photo_count = serializers.IntegerField(read_only=True)
     first_photo = serializers.SerializerMethodField()
-    
+    rubric_name = serializers.CharField(source='rubric.name', read_only=True)
     class Meta:
         model = Post
         fields = [
-            'id',                # Номер поста
-            'title',              # Заголовок
-            'description',        # Описание
+            'id',                # Номер поста/сообщения
+            'title',              # Тема сообщения (заголовок)
+            'description',        # Текст сообщения
+            'address',            # Адрес события (по ТЗ)
+            'latitude',           # Широта (координаты)
+            'longitude',          # Долгота (координаты)
+            'rubric',             # ID рубрики (для записи)
+            'rubric_name',        # Имя рубрики (для отображения)
             'author',             # ID автора
             'author_username',    # Имя автора
             'author_email',       # Email автора
@@ -189,8 +196,8 @@ class PostSerializer(serializers.ModelSerializer):
             'updated_at',         # Дата обновления
             'published_at',       # Дата публикации
             'photos',             # Список фото
-            'photo_count',        # Количество фото
-            'first_photo',        # Первое фото (для превью)
+            'photo_count',        # Количество фото (подпись по ТЗ)
+            'first_photo',        # Первое фото — главное (по ТЗ)
         ]
         read_only_fields = ['author', 'created_at', 'updated_at', 'published_at']
     
@@ -204,11 +211,11 @@ class PostSerializer(serializers.ModelSerializer):
 
 class PostCreateSerializer(serializers.ModelSerializer):
     """
-    Сериализатор для создания поста
+    Сериализатор для создания поста/сообщения (по ТЗ)
     """
     class Meta:
         model = Post
-        fields = ['title', 'description', 'status']
+        fields = ['title', 'description', 'address', 'latitude', 'longitude', 'rubric', 'status']
     
     def create(self, validated_data):
         validated_data['author'] = self.context['request'].user
@@ -217,11 +224,11 @@ class PostCreateSerializer(serializers.ModelSerializer):
 
 class PostUpdateSerializer(serializers.ModelSerializer):
     """
-    Сериализатор для обновления поста
+    Сериализатор для обновления поста/сообщения
     """
     class Meta:
         model = Post
-        fields = ['title', 'description', 'status']
+        fields = ['title', 'description', 'address', 'latitude', 'longitude', 'rubric','status']
 
 
 class PostPhotoUploadSerializer(serializers.Serializer):
@@ -284,22 +291,41 @@ class PostPhotoUploadSerializer(serializers.Serializer):
 
 class PostListSerializer(serializers.ModelSerializer):
     """
-    Упрощенный сериализатор для списка постов
+    Упрощённый сериализатор для списка сообщений
+    тема сообщения, адрес, главная фотография
     """
     author_username = serializers.CharField(source='author.username')
     photo_count = serializers.IntegerField(read_only=True)
     preview_photo = serializers.SerializerMethodField()
+    rubric_name = serializers.CharField(source='rubric.name', read_only=True)
     
     class Meta:
         model = Post
         fields = [
-            'id', 'title', 'author_username', 
-            'created_at', 'photo_count', 'preview_photo'
+            'id', 'title', 'address', 'latitude', 'longitude',
+            'rubric_name',
+            'author_username', 'created_at', 'photo_count', 'preview_photo'
         ]
     
     def get_preview_photo(self, obj):
-        """Возвращает URL первого фото для превью"""
+        """Возвращает полный URL первого (главного) фото для превью"""
         first = obj.photos.first()
-        if first:
+        if first and first.photo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(first.photo.url)
             return first.photo.url
         return None
+
+
+# === Nominatim / адреса ===
+class AddressReverseSerializer(serializers.Serializer):
+    """Запрос обратного геокодирования: координаты → адрес"""
+    lat = serializers.FloatField(min_value=-90, max_value=90)
+    lon = serializers.FloatField(min_value=-180, max_value=180)
+
+
+class AddressSearchSerializer(serializers.Serializer):
+    """Поиск по имени/адресу"""
+    q = serializers.CharField(min_length=2, max_length=200)
+    limit = serializers.IntegerField(default=5, min_value=1, max_value=10)

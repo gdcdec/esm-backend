@@ -126,8 +126,8 @@ class CustomUser(AbstractUser):
         db_table = 'custom_user'  # Явно указываем имя таблицы
         verbose_name = 'User'
         verbose_name_plural = 'Users'
-        
-User = get_user_model()
+User = get_user_model()# По сути экспорт как модель
+
 
 class PasswordReset(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -186,7 +186,40 @@ class Post(models.Model):
         blank=True  # Можно оставить пустым
     )
     
-    # Связь с автором #После продакшена убрать нулы
+    # СВЯЗЬ С РУБРИКОЙ
+    rubric = models.ForeignKey(
+        Rubric,
+        on_delete=models.SET_NULL,  # При удалении рубрики, поле станет NULL
+        null=True,                  # Разрешаем NULL 
+        blank=True,
+        related_name='posts',        # Обратная связь: rubric.posts.all()
+        verbose_name="Рубрика",
+        help_text="Рубрика/категория поста"
+    )
+    
+    # Адрес события
+    address = models.CharField(
+        max_length=500,
+        verbose_name="Адрес события",
+        help_text="Адрес инцидента/события",
+        blank=True
+    )
+    
+    # Координаты (точка на карте). Временно null/blank
+    latitude = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name="Широта",
+        help_text="Latitude: -90 до 90"
+    )
+    longitude = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name="Долгота",
+        help_text="Longitude: -180 до 180"
+    )
+    
+    # СВЯЗЬ С АВТОРОМ # После продак убрать нулы
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -245,17 +278,34 @@ class Post(models.Model):
             models.Index(fields=['-created_at']),
             models.Index(fields=['author', '-created_at']),
             models.Index(fields=['status', '-created_at']),
+            models.Index(fields=['rubric']),
         ]
     
     def __str__(self):
         return f"Пост #{self.id}: {self.title[:50]}"
     
     def save(self, *args, **kwargs):
-        # Если статус меняется на 'published' и не установлена дата публикации
-        if self.status == 'published' and not self.published_at:
-            from django.utils import timezone
-            self.published_at = timezone.now()
-        super().save(*args, **kwargs)
+            # Обновляем счетчик рубрики при изменении
+            old = None
+            if self.pk:
+                old = Post.objects.get(pk=self.pk)
+            
+            super().save(*args, **kwargs)
+            
+            # Обновляем счетчики рубрик
+            if old and old.rubric != self.rubric:
+                if old.rubric:
+                    old.rubric.decrement_counter()
+                if self.rubric:
+                    self.rubric.increment_counter()
+            elif not old and self.rubric:
+                self.rubric.increment_counter()
+    
+    def delete(self, *args, **kwargs):
+        # Уменьшаем счетчик при удалении
+        if self.rubric:
+            self.rubric.decrement_counter()
+        super().delete(*args, **kwargs)
     
     @property
     def photo_count(self):
@@ -272,6 +322,7 @@ class PostPhoto(models.Model):
     """
     Модель фотографии поста
     """
+    # СВЯЗЬ С ПОСТАМИ
     post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,

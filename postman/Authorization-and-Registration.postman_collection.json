@@ -1,0 +1,390 @@
+{
+  "info": {
+    "_postman_id": "c9709113-0af2-40f2-a08e-8ac50ee17f9d",
+    "name": "Authorization and Registration",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "43786527",
+    "_collection_link": "https://go.postman.co/collection/43786527-c9709113-0af2-40f2-a08e-8ac50ee17f9d?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const response = pm.response.json();",
+              "    let token = response.token;",
+              "    if (token) {",
+              "        token = String(token).replace(/[^a-f0-9]/gi, '');",
+              "        if (token.length > 40) token = token.substring(0, 40);",
+              "        pm.environment.set(\"auth_token\", token);",
+              "    }",
+              "    if (response.user_id) pm.environment.set(\"user_id\", response.user_id);",
+              "    pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+              "    pm.test(\"Токен сохранен\", () => pm.expect(pm.environment.get(\"auth_token\")).to.be.a(\"string\"));",
+              "} else {",
+              "    pm.test(\"Логин неудачен\", () => pm.expect(pm.response.code).to.be.oneOf([400, 401]));",
+              "}"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"username\": \"testuser2\",\n    \"password\": \"TestPass123!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/login/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "login",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "register",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"username\": \"testuser2\",\n    \"email\": \"test2@example.com\",\n    \"password\": \"TestPass123!\",\n    \"password2\": \"TestPass123!\",\n    \"first_name\": \"Петр\",\n    \"last_name\": \"Петров\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/register/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "register",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "logout",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// Проверяем токен перед отправкой",
+              "const token = pm.environment.get(\"auth_token\");",
+              "console.log(\"Токен из окружения:\", token);",
+              "console.log(\"Длина:\", token ? token.length : 0);",
+              "",
+              "if (!token) {",
+              "    console.error(\"Нет токена! Выполните логин сначала.\");",
+              "}"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Token {{auth_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/logout/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "logout",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "reset_password",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "try { const body = JSON.parse(pm.request.body.raw); if (body.email) pm.environment.set('reset_email', body.email); } catch(e) {}"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Тесты для запроса кода",
+              "pm.test(\"Статус 200 OK\", function() {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Ответ содержит сообщение об отправке\", function() {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response).to.have.property('message');",
+              "    pm.expect(response.message).to.include('отправлен');",
+              "});",
+              "",
+              "pm.test(\"Ответ содержит email\", function() {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.email).to.eql(pm.environment.get(\"reset_email\"));",
+              "});",
+              "",
+              "// Сохраняем код из ответа (для разработки)",
+              "if (pm.response.json().debug_code) {",
+              "    const debugCode = pm.response.json().debug_code;",
+              "    pm.environment.set(\"reset_code\", debugCode);",
+              "    console.log(\"✅ Код сохранен:\", debugCode);",
+              "} else {",
+              "    console.log(\"⚠️ Код не найден в ответе, нужно ввести вручную\");",
+              "}",
+              "",
+              "// Проверяем, что код состоит из 6 цифр (если есть)",
+              "if (pm.response.json().debug_code) {",
+              "    pm.test(\"Код состоит из 6 цифр\", function() {",
+              "        const code = pm.response.json().debug_code;",
+              "        pm.expect(code).to.match(/^\\d{6}$/);",
+              "    });",
+              "}"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"mitrinov4124@gmail.com\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/password-reset/request/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "password-reset",
+            "request",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "reset_verify",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Статус 200 OK\", function() {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Код подтвержден\", function() {",
+              "    const response = pm.response.json();",
+              "    pm.test(\"Поле verified существует и равно true\", function() {",
+              "        pm.expect(response.verified).to.be.true;",
+              "    });",
+              "    pm.test(\"Есть сообщение о подтверждении\", function() {",
+              "        pm.expect(response.message).to.include('подтвержден');",
+              "    });",
+              "});",
+              "",
+              "console.log(\"✅ Код успешно проверен\");"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"{{reset_email}}\",\n    \"code\": \"{{reset_code}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/password-reset/verify/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "password-reset",
+            "verify",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "set_new_password",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Статус 200 OK\", function() {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Пароль успешно изменен\", function() {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.message).to.include('успешно');",
+              "});",
+              "",
+              "// Тест на проверку, что можно залогиниться новым паролем",
+              "pm.test(\"Сохраняем новый пароль для теста логина\", function() {",
+              "    const newPass = pm.environment.get(\"new_password\");",
+              "    pm.environment.set(\"last_reset_password\", newPass);",
+              "});",
+              "",
+              "console.log(\"✅ Пароль успешно изменен\");"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"{{reset_email}}\",\n    \"code\": \"{{reset_code}}\",\n    \"new_password\": \"NewTestPass123!\",\n    \"confirm_password\": \"NewTestPass123!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/password-reset/confirm/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "password-reset",
+            "confirm",
+            ""
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
