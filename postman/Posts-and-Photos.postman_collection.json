@@ -244,6 +244,70 @@
           "response": []
         },
         {
+          "name": "Получить посты по адресу",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"✅ Статус 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const data = pm.response.json();",
+                  "",
+                  "pm.test(\"✅ Ответ - массив\", function () {",
+                  "    pm.expect(data).to.be.an(\"array\");",
+                  "});",
+                  "",
+                  "// Можно оставить как информационный тест (0+ результатов)",
+                  "pm.test(\"✅ Массив получен (может быть пустым)\", function () {",
+                  "    pm.expect(data.length).to.be.at.least(0);",
+                  "});",
+                  "",
+                  "const addr = (pm.environment.get(\"test_address\") || \"\").toLowerCase();",
+                  "if (addr) {",
+                  "    pm.test(\"✅ Каждый пост содержит указанный адрес\", function () {",
+                  "        data.forEach(post => {",
+                  "            pm.expect(String(post.address || \"\").toLowerCase()).to.include(addr);",
+                  "        });",
+                  "    });",
+                  "}",
+                  "",
+                  "console.log(`📊 Найдено постов по адресу \"${addr}\": ${data.length}`);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/posts/?address={{test_address}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "address",
+                  "value": "{{test_address}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Получить все посты по рубрике",
           "event": [
             {

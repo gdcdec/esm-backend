@@ -343,6 +343,11 @@ class PostListView(generics.ListCreateAPIView):
         if rubric_name:
             queryset = queryset.filter(rubric__name=rubric_name)
         
+        # ФИЛЬТРАЦИЯ ПО АДРЕСУ (?address=...)
+        address = self.request.query_params.get('address')
+        if address:
+            queryset = queryset.filter(address__icontains=address)
+
         # Фильтрация по статусу в зависимости от пользователя
         if user.is_authenticated:
             queryset = queryset.filter(
@@ -410,6 +415,11 @@ class UserPostListView(generics.ListAPIView):
                 author_id=user_id,
                 status='published'
             )
+
+        # ФИЛЬТРАЦИЯ ПО АДРЕСУ (?address=...)
+        address = self.request.query_params.get('address')
+        if address:
+            queryset = queryset.filter(address__icontains=address)
         
         # Применяем фильтр по рубрике, если указан
         if rubric_name:
