@@ -285,26 +285,34 @@ class Post(models.Model):
         return f"Пост #{self.id}: {self.title[:50]}"
     
     def save(self, *args, **kwargs):
+        """
+        Переопределённый save:
+        - один раз сохраняет объект;
+        - обновляет дату публикации при статусе 'published';
+        - корректно обновляет счётчики рубрик при изменении rubric.
+        """
+        # Запомним старую рубрику ДО сохранения (если объект уже существует)
+        old_rubric = None
+        if self.pk:
+            try:
+                old_rubric = Post.objects.get(pk=self.pk).rubric
+            except Post.DoesNotExist:
+                old_rubric = None
+
         # Если статус меняется на 'published' и не установлена дата публикации
         if self.status == 'published' and not self.published_at:
             from django.utils import timezone
             self.published_at = timezone.now()
+
+        # ОДНО сохранение
         super().save(*args, **kwargs)
-        # Обновляем счетчик рубрики при изменении
-        old = None
-        if self.pk:
-            old = Post.objects.get(pk=self.pk)
-        
-        super().save(*args, **kwargs)
-        
-        # Обновляем счетчики рубрик
-        if old and old.rubric != self.rubric:
-            if old.rubric:
-                old.rubric.decrement_counter()
+
+        # Обновляем счётчики рубрик
+        if old_rubric != self.rubric:
+            if old_rubric:
+                old_rubric.decrement_counter()
             if self.rubric:
                 self.rubric.increment_counter()
-        elif not old and self.rubric:
-            self.rubric.increment_counter()
     
     def delete(self, *args, **kwargs):
         # Уменьшаем счетчик при удалении
