@@ -68,6 +68,7 @@ services:
     depends_on:
       postgres-db:
         condition: service_healthy
+    #tail -f /dev/null
     command: >
       sh -c "
       echo 'Ожидание PostgreSQL...' &&

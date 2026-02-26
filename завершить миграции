@@ -1,0 +1,15 @@
+
+docker-compose down
+sudo rm -rf api/migrations/
+sudo mkdir -p api/migrations
+sudo touch api/migrations/__init__.py
+docker-compose down -v
+docker-compose up -d
+docker-compose exec django python manage.py makemigrations api
+docker-compose exec django python manage.py migrate
+
+docker-compose exec django python manage.py createsuperuser
+    там любого для сайта админа создай всё равно у нас свои, но я чисто
+    login: admin
+    email: admin@admin.com
+    password: admin

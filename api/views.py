@@ -348,14 +348,20 @@ class PostListView(generics.ListCreateAPIView):
         if address:
             queryset = queryset.filter(address__icontains=address)
 
+        
         # Фильтрация по статусу в зависимости от пользователя
-        if user.is_authenticated:
-            queryset = queryset.filter(
-                Q(status='published') | Q(author=user)
-            )
+        need_his = self.request.query_params.get('self')
+        if user.is_authenticated and need_his == '1':
+            
+            queryset = queryset.filter(author=user)
+            # Фильтр по статусу (Если есть)
+            status_param = self.request.query_params.get('status')
+            if status_param:
+                queryset = queryset.filter(status=status_param)
+
+        
         else:
             queryset = queryset.filter(status='published')
-        
         return queryset
     
     def perform_create(self, serializer):
@@ -402,13 +408,15 @@ class UserPostListView(generics.ListAPIView):
         user_id = self.kwargs['user_id']
         user = self.request.user
         
-        # ФИЛЬТРАЦИЯ ПО РУБРИКЕ
-        rubric_name = self.request.query_params.get('rubric', None)
         
         # Базовый queryset для пользователя
-        if user.is_authenticated and user.id == user_id:
+        if (user.is_authenticated and user.id == user_id):
             # Свои посты (включая черновики)
             queryset = Post.objects.filter(author_id=user_id)
+            # Фильтр по статусу (Если есть)
+            status_param = self.request.query_params.get('status')
+            if status_param:
+                queryset = queryset.filter(status=status_param)
         else:
             # Чужие посты (только опубликованные)
             queryset = Post.objects.filter(
@@ -416,14 +424,17 @@ class UserPostListView(generics.ListAPIView):
                 status='published'
             )
 
+
+        # ФИЛЬТРАЦИЯ ПО РУБРИКЕ
+        rubric_name = self.request.query_params.get('rubric', None)
+        if rubric_name:
+            queryset = queryset.filter(rubric__name=rubric_name)
         # ФИЛЬТРАЦИЯ ПО АДРЕСУ (?address=...)
         address = self.request.query_params.get('address')
         if address:
             queryset = queryset.filter(address__icontains=address)
         
-        # Применяем фильтр по рубрике, если указан
-        if rubric_name:
-            queryset = queryset.filter(rubric__name=rubric_name)
+        
         
         return queryset.select_related('author', 'rubric').prefetch_related('photos')
             
