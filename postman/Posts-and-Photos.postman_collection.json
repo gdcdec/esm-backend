@@ -1,11 +1,11 @@
 {
   "info": {
-    "_postman_id": "6a7bd585-bb14-4dc5-97c9-923f3c73e384",
+    "_postman_id": "d2c4611b-f7be-43fb-9dc7-566dd6f442cf",
     "name": "Posts and Photos Tests",
     "description": "Полное тестирование постов и фотографий",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "43786527",
-    "_collection_link": "https://go.postman.co/collection/43786527-6a7bd585-bb14-4dc5-97c9-923f3c73e384?source=collection_link"
+    "_collection_link": "https://go.postman.co/collection/43786527-d2c4611b-f7be-43fb-9dc7-566dd6f442cf?source=collection_link"
   },
   "item": [
     {
@@ -172,7 +172,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"title\": \"{{post_title}}\",\n    \"description\": \"Это тестовый пост, созданный в Postman для проверки функционала\",\n    \"address\": \"ул. Ленина, 1\",\n    \"latitude\": 55.7558,\n    \"longitude\": 37.6173,\n    \"status\": \"published\",\n    \"rubric\": \"Новости2\"\n}"
+              "raw": "{\n    \"title\": \"{{post_title}}\",\n    \"description\": \"Это тестовый пост, созданный в Postman для проверки функционала\",\n    \"address\": \"ул. Ленина, 1\",\n    \"latitude\": 55.7558,\n    \"longitude\": 37.6173,\n    \"status\": \"published\",\n    \"rubric\": \"Тестовая рубрика\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/posts/",
@@ -188,63 +188,7 @@
           "response": []
         },
         {
-          "name": "Получить все посты",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"✅ Статус 200\", function() {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "const response = pm.response.json();",
-                  "",
-                  "pm.test(\"✅ Ответ - это массив\", function() {",
-                  "    pm.expect(response).to.be.an('array');",
-                  "});",
-                  "",
-                  "pm.test(\"✅ В массиве есть посты\", function() {",
-                  "    pm.expect(response.length).to.be.at.least(1);",
-                  "});",
-                  "",
-                  "pm.test(\"✅ У каждого поста есть обязательные поля\", function() {",
-                  "    response.forEach(post => {",
-                  "        pm.expect(post).to.have.property('id');",
-                  "        pm.expect(post).to.have.property('title');",
-                  "        pm.expect(post).to.have.property('photo_count');",
-                  "    });",
-                  "});",
-                  "",
-                  "console.log(`📊 Всего постов: ${response.length}`);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Token {{auth_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/posts/",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "posts",
-                ""
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Получить все посты по рубрике",
+          "name": "Получить все посты + фильтры",
           "event": [
             {
               "listen": "test",
@@ -289,7 +233,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/posts/?rubric=Новости",
+              "raw": "{{base_url}}/posts/",
               "host": [
                 "{{base_url}}"
               ],
@@ -299,8 +243,45 @@
               ],
               "query": [
                 {
+                  "key": "address",
+                  "value": "{{test_address}}",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
                   "key": "rubric",
-                  "value": "Новости"
+                  "value": "{{Rubric_param}}",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "draft",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "self",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "author_id",
+                  "value": "2",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "date_start",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "date_end",
+                  "value": "2026-02-26",
+                  "type": "text",
+                  "disabled": true
                 }
               ]
             }
@@ -340,7 +321,9 @@
                   "console.log(`📄 Пост #${response.id}: \"${response.title}\"`);",
                   "console.log(`📸 Фото: ${response.photo_count}`);"
                 ],
-                "type": "text/javascript"
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
               }
             }
           ],
@@ -390,7 +373,9 @@
                   "console.log(`✏️ Пост #${response.id} обновлен`);",
                   "console.log(`   Новый заголовок: \"${response.title}\"`);"
                 ],
-                "type": "text/javascript"
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
               }
             },
             {
@@ -401,7 +386,9 @@
                   "const updatedTitle = `ОБНОВЛЕННЫЙ пост ${timestamp}`;",
                   "pm.variables.set(\"updated_title\", updatedTitle);"
                 ],
-                "type": "text/javascript"
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
               }
             }
           ],
@@ -419,7 +406,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"title\": \"{{updated_title}}\",\n    \"description\": \"Это описание было ОБНОВЛЕНО через PATCH запрос\",\n    \"address\": \"ул. Мира, 5\",\n    \"latitude\": 55.76,\n    \"longitude\": 37.62,\n    \"status\": \"published\"\n}"
+              "raw": "{\n    \"title\": \"{{updated_title}}\",\n    \"description\": \"Это описание было ОБНОВЛЕНО через PATCH запрос\",\n    \"address\": \"ул. Мира, 5\",\n    \"latitude\": 55.76,\n    \"longitude\": 37.62,\n    \"status\": \"draft\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/posts/{{post_id}}/",
@@ -436,59 +423,7 @@
           "response": []
         },
         {
-          "name": "Получить посты пользователя",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"✅ Статус 200\", function() {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "const response = pm.response.json();",
-                  "",
-                  "pm.test(\"✅ Ответ - массив\", function() {",
-                  "    pm.expect(response).to.be.an('array');",
-                  "});",
-                  "",
-                  "response.forEach(post => {",
-                  "    pm.test(`✅ Пост #${post.id} принадлежит пользователю`, function() {",
-                  "        pm.expect(post.author_username).to.eql('testuser');",
-                  "    });",
-                  "});",
-                  "",
-                  "console.log(`👤 Постов пользователя testuser: ${response.length}`);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Token {{auth_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/users/{{user_id}}/posts/",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "users",
-                "{{user_id}}",
-                "posts",
-                ""
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Получить посты пользователя по рубрике",
+          "name": "Получить посты пользователя +фильтры",
           "event": [
             {
               "listen": "test",
@@ -527,7 +462,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/users/{{user_id}}/posts/?rubric=Новости",
+              "raw": "{{base_url}}/users/{{user_id}}/posts/?status=draft&rubric=Тестовая рубрика",
               "host": [
                 "{{base_url}}"
               ],
@@ -539,8 +474,13 @@
               ],
               "query": [
                 {
+                  "key": "status",
+                  "value": "draft",
+                  "description": "draft, published"
+                },
+                {
                   "key": "rubric",
-                  "value": "Новости"
+                  "value": "Тестовая рубрика"
                 }
               ]
             }

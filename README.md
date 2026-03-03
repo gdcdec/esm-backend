@@ -19,9 +19,10 @@ python manage.py runserver
 
 ### Docker
 
+Необходимо запустить shell-скрипт от имени привилигированного пользователя:
+
 ```bash
-docker-compose up -d --build
-docker exec -it django-app python manage.py migrate
+sudo ./run_compose.sh
 ```
 
 API: `http://localhost:8000/api/`
@@ -67,6 +68,16 @@ API: `http://localhost:8000/api/`
 
 ---
 
+**Фильтры для списков постов (`/posts/` и `/users/<user_id>/posts/`):**
+
+- `?rubric=<name>` — только посты указанной рубрики (по имени рубрики).
+- `?address=<строка>` — поиск по адресу (подстрока в поле `address`, регистр не важен).  
+  Примеры:
+  - `GET /api/posts/?address=Ленина`
+  - `GET /api/users/1/posts/?address=Ленина`  
+  Вернёт все посты, в чьём `address` встречается указанная строка (например, `"ул. Ленина, 1"`).
+
+---
 ### Фотографии
 
 | Метод | URL | Описание |

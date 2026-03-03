@@ -220,16 +220,62 @@ class PostCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['author'] = self.context['request'].user
         return super().create(validated_data)
-
-
+    
+    def validate_status(self, value):
+        user = self.context['request'].user
+        
+        # Доступные статусы для обычных пользователей
+        user_allowed_statuses = ['draft', 'check']
+        
+        # Все доступные статусы
+        all_statuses = ['draft', 'published', 'archived', 'check']
+        
+        if not user.is_superuser and value not in user_allowed_statuses:
+            raise serializers.ValidationError(
+                f"Обычные пользователи могут выбрать только статусы: {', '.join(user_allowed_statuses)}"
+            )
+        return value
 class PostUpdateSerializer(serializers.ModelSerializer):
     """
     Сериализатор для обновления поста/сообщения
     """
     class Meta:
         model = Post
-        fields = ['title', 'description', 'address', 'latitude', 'longitude', 'rubric','status']
-
+        fields = ['title', 'description', 'address', 'latitude', 'longitude', 'rubric', 'status']
+    
+    def validate_status(self, value):
+        user = self.context['request'].user
+        
+        # Доступные статусы для обычных пользователей
+        user_allowed_statuses = ['draft', 'check']
+        
+        # Проверка для обычных пользователей
+        if not user.is_superuser and value not in user_allowed_statuses:
+            raise serializers.ValidationError(
+                f"Обычные пользователи могут выбрать только статусы: {', '.join(user_allowed_statuses)}"
+            )
+        
+        return value
+    
+    def validate(self, data):
+        user = self.context['request'].user
+        instance = self.instance
+        
+        if instance and not user.is_superuser:
+            if 'status' in data:
+                new_status = data['status']
+                
+                # Проверяем, что новый статус в списке разрешенных
+                if new_status not in ['draft', 'check']:
+                    raise serializers.ValidationError({
+                        'status': f'Обычные пользователи могут выбрать только статусы: draft, check'
+                    })
+                
+                """ Дополнительная проверка: если пост был опубликован,
+                разрешаем сменить только на draft или check (уже проверили выше)
+                Это работает, так как мы уже проверили, что new_status в ['draft', 'check']"""
+                
+        return data
 
 class PostPhotoUploadSerializer(serializers.Serializer):
     """
