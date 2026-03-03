@@ -31,6 +31,11 @@
 USERS_DIR=.users
 USERS=`cat ${USERS_DIR}/users.txt`
 
+if [ -z $USERS ]; then
+    echo "WARN: At least one user should be specified"
+    exit 0
+fi
+
 for I in $USERS; do
     USER_FILE=${USERS_DIR}/${I}.txt
 
