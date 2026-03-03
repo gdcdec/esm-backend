@@ -15,8 +15,12 @@ else
     docker-compose exec django python manage.py migrate
 fi
 
-if [ "$1" == "--newadmin" ]; then
-    echo "Создаём нового админа..."
+
+
+if [ "$2" == "--admin" ]; then
+    echo "Новая база, новый админ..."
     docker-compose exec django python manage.py createsuperuser
 else
-    echo "Завершаем без создания нового админа..."
+    echo "Старые данные есть..."
+fi
+
