@@ -12,6 +12,13 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 import os
+from dotenv import load_dotenv
+
+# Загружаем переменные из .env файла
+load_dotenv()
+
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -22,8 +29,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-7%xqsta6t*as+f0cn37=oss2ney)jpcd6nsq@o*$p5jlxpjh%)'
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -33,9 +39,17 @@ if DEBUG:
     import mimetypes
     mimetypes.add_type("application/javascript", ".js", True)
     ALLOWED_HOSTS = ['*']
+    # SECURITY WARNING: keep the secret key used in production secret!
+    SECRET_KEY = 'django-insecure-7%xqsta6t*as+f0cn37=oss2ney)jpcd6nsq@o*$p5jlxpjh%)'
     
 else:
+
     ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0').split(',')
+    ADDITIONAL_HOST = os.getenv('VLAD_SRV')
+    if ADDITIONAL_HOST:
+        ALLOWED_HOSTS.append(ADDITIONAL_HOST)
+    SECRET_KEY = os.getenv('SECRET_KEY')
+    
 
 
 # Application definition
