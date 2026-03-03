@@ -5,6 +5,7 @@ from rest_framework import viewsets, status, generics, permissions
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 from .models import Rubric, CustomUser
 from .serializers import RubricSerializer, UserRegistrationSerializer
 from rest_framework.authtoken.models import Token
@@ -342,7 +343,40 @@ class PostListView(generics.ListCreateAPIView):
         rubric_name = self.request.query_params.get('rubric', None)
         if rubric_name:
             queryset = queryset.filter(rubric__name=rubric_name)
-        
+        # ФИЛЬТРАЦИЯ ПО АВТОРУ
+        author_id = self.request.query_params.get('author_id')
+        if author_id:
+            queryset = queryset.filter(author_id=author_id)
+        # ФИЛЬТРАЦИЯ ПО ПЕРИОДУ
+        date_start = self.request.query_params.get('date_start')
+        date_end = self.request.query_params.get('date_end')
+        try:
+            if date_start:
+                # Предполагаем формат YYYY-MM-DD Так как таймстампы в БД также выглядят
+                start_date = datetime.strptime(date_start, '%Y-%m-%d')
+                queryset = queryset.filter(published_at__gte=start_date)
+            
+            if date_end:
+                end_date = datetime.strptime(date_end, '%Y-%m-%d')
+                # Добавляем конец дня, чтобы включить все записи за указанную дату
+                end_date = end_date.replace(hour=23, minute=59, second=59)
+                queryset = queryset.filter(published_at__lte=end_date)
+                
+        except ValueError:
+            raise ValidationError("Неверный формат даты. Используйте YYYY-MM-DD")
+        """
+        if date_start and date_end:
+            queryset = queryset.filter(
+                published_at__gte=date_start,
+                published_at__lte=date_end
+            )      
+        elif date_start:
+            # Только начальная дата
+            queryset = queryset.filter(published_at__gte=date_start)
+        elif date_end:
+            # Только конечная дата
+            queryset = queryset.filter(published_at__lte=date_end)
+        """
         # ФИЛЬТРАЦИЯ ПО АДРЕСУ (?address=...)
         address = self.request.query_params.get('address')
         if address:
@@ -365,7 +399,13 @@ class PostListView(generics.ListCreateAPIView):
         return queryset
     
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        #serializer.save(author=self.request.user)
+        user = self.request.user
+        
+        if not user.is_superuser and 'status' not in serializer.validated_data:
+            serializer.save(author=user, status='check')
+        else:
+            serializer.save(author=user)
 
 class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
@@ -383,17 +423,26 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
         return PostSerializer
     
     def check_object_permissions(self, request, obj):
-        # Проверка прав доступа
+        # Проверка прав доступа для изменения/удаления
         if request.method in ['PUT', 'PATCH', 'DELETE']:
+            # Проверка авторства
             if obj.author != request.user:
                 self.permission_denied(request, "Вы не автор этого поста")
+            """
+            # Если захотим блочить изменение статусов опубликованных постов
+            
+            if request.method in ['PUT', 'PATCH'] and not request.user.is_superuser:
+                # Если пост уже опубликован, запрещаем изменение статуса
+                if obj.status == 'published':
+                    if 'status' in request.data and request.data['status'] != 'published':
+                        self.permission_denied(request, "Нельзя изменить статус опубликованного поста")"""
         
+        # Проверка прав доступа для просмотра
         if request.method == 'GET':
             if obj.status != 'published' and obj.author != request.user:
                 self.permission_denied(request, "Пост не опубликован")
         
         return super().check_object_permissions(request, obj)
-
 
 class UserPostListView(generics.ListAPIView):
     """

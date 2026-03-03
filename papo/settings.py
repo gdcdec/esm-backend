@@ -32,8 +32,10 @@ if DEBUG:
     # Только для режима разработки
     import mimetypes
     mimetypes.add_type("application/javascript", ".js", True)
-
-ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0').split(',')
+    ALLOWED_HOSTS = ['*']
+    
+else:
+    ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0').split(',')
 
 
 # Application definition

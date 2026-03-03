@@ -234,6 +234,7 @@ class Post(models.Model):
         ('draft', 'Черновик'),
         ('published', 'Опубликован'),
         ('archived', 'В архиве'),
+        ('check', 'На рассмотрении'),
     ]
     
     status = models.CharField(

@@ -264,6 +264,24 @@
                   "key": "self",
                   "value": "1",
                   "disabled": true
+                },
+                {
+                  "key": "author_id",
+                  "value": "2",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "date_start",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "date_end",
+                  "value": "2026-02-26",
+                  "type": "text",
+                  "disabled": true
                 }
               ]
             }
@@ -355,7 +373,9 @@
                   "console.log(`✏️ Пост #${response.id} обновлен`);",
                   "console.log(`   Новый заголовок: \"${response.title}\"`);"
                 ],
-                "type": "text/javascript"
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
               }
             },
             {
@@ -366,7 +386,9 @@
                   "const updatedTitle = `ОБНОВЛЕННЫЙ пост ${timestamp}`;",
                   "pm.variables.set(\"updated_title\", updatedTitle);"
                 ],
-                "type": "text/javascript"
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
               }
             }
           ],
@@ -384,7 +406,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"title\": \"{{updated_title}}\",\n    \"description\": \"Это описание было ОБНОВЛЕНО через PATCH запрос\",\n    \"address\": \"ул. Мира, 5\",\n    \"latitude\": 55.76,\n    \"longitude\": 37.62,\n    \"status\": \"published\"\n}"
+              "raw": "{\n    \"title\": \"{{updated_title}}\",\n    \"description\": \"Это описание было ОБНОВЛЕНО через PATCH запрос\",\n    \"address\": \"ул. Мира, 5\",\n    \"latitude\": 55.76,\n    \"longitude\": 37.62,\n    \"status\": \"draft\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/posts/{{post_id}}/",
