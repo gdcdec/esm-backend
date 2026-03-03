@@ -62,7 +62,7 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=mysecretpassword
       - DB_PORT=5432
-      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
     networks:
       - my-network
     depends_on:
