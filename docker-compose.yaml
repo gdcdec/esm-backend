@@ -35,12 +35,9 @@ services:
       - "80:80"
     networks:
       - my-network
-    depends_on:
-      - postgres-db
     restart: unless-stopped
     user: "5050:5050"
-    # Добавляем небольшую задержку для гарантии, что postgres готов
-    depends_on:
+    depends_on:  # ОДИН depends_on
       postgres-db:
         condition: service_healthy
 
