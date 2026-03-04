@@ -47,7 +47,8 @@ else:
     ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0').split(',')
     ADDITIONAL_HOST = os.getenv('VLAD_SRV')
     if ADDITIONAL_HOST:
-        ALLOWED_HOSTS.append(ADDITIONAL_HOST)
+        for host in ADDITIONAL_HOST.split(','):
+            ALLOWED_HOSTS.append(host)
     SECRET_KEY = os.getenv('SECRET_KEY')
     
 
