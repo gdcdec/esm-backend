@@ -64,6 +64,7 @@ services:
       - DB_PORT=5432
       - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
       - SECRET_KEY=bla312()819203812903uriohsdgjk
+      - DEBUG=false
     networks:
       - my-network
     depends_on:
