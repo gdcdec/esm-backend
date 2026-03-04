@@ -28,6 +28,7 @@ services:
       - PGADMIN_DEFAULT_EMAIL=admin@admin.com
       - PGADMIN_DEFAULT_PASSWORD=admin
       - PYTHONWARNINGS=ignore
+      - PGADMIN_CONFIG_SERVER_MODE=False
     volumes:
       - ./pgadmin_data:/var/lib/pgadmin
     ports:
@@ -37,20 +38,18 @@ services:
     depends_on:
       - postgres-db
     restart: unless-stopped
-    user: root
-    entrypoint: >
-      sh -c "
-      echo '🔧 Настройка прав доступа для pgAdmin...' &&
-      mkdir -p /var/lib/pgadmin/sessions &&
-      mkdir -p /var/lib/pgadmin/storage &&
-      chmod 777 /var/lib/pgadmin/sessions &&
-      chmod 777 /var/lib/pgadmin/storage &&
-      echo '✅ Права настроены, запуск pgAdmin...' &&
-      exec /entrypoint.sh
-      "
+    user: "5050:5050"
+    # Добавляем небольшую задержку для гарантии, что postgres готов
+    depends_on:
+      postgres-db:
+        condition: service_healthy
 
   django:
-    build: .
+    build:
+      context: .
+      args:
+        - UID=${UID:-1000}  # Берем UID из окружения или используем 1000 по умолчанию
+        - GID=${GID:-1000}
     container_name: django-app
     volumes:
       - .:/app
@@ -64,17 +63,23 @@ services:
       - DB_PORT=5432
       - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
       - SECRET_KEY=bla312()819203812903uriohsdgjk
+      - PYTHONUNBUFFERED=1
     networks:
       - my-network
     depends_on:
       postgres-db:
         condition: service_healthy
-    #tail -f /dev/null
+    user: "${UID:-1000}:${GID:-1000}"
     command: >
       sh -c "
-      echo 'Ожидание PostgreSQL...' &&
+      echo '📁 Проверка прав доступа...' &&
+      touch /app/test_write && rm /app/test_write &&
+      echo '✅ Права на запись есть' &&
+      echo '🐘 Ожидание PostgreSQL...' &&
       python wait_for_db.py &&
+      echo '🔄 Применение миграций...' &&
       python manage.py migrate &&
+      echo '🚀 Запуск сервера...' &&
       python manage.py runserver 0.0.0.0:8000
       "
     restart: unless-stopped
