@@ -64,6 +64,7 @@ services:
       - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
       - SECRET_KEY=bla312()819203812903uriohsdgjk
       - PYTHONUNBUFFERED=1
+      - DEBUG=false
     networks:
       - my-network
     depends_on:
@@ -72,14 +73,14 @@ services:
     user: "${UID:-1000}:${GID:-1000}"
     command: >
       sh -c "
-      echo '📁 Проверка прав доступа...' &&
+      echo 'Проверка прав доступа...' &&
       touch /app/test_write && rm /app/test_write &&
-      echo '✅ Права на запись есть' &&
-      echo '🐘 Ожидание PostgreSQL...' &&
+      echo 'Права на запись есть' &&
+      echo 'Ожидание PostgreSQL...' &&
       python wait_for_db.py &&
-      echo '🔄 Применение миграций...' &&
+      echo 'Применение миграций...' &&
       python manage.py migrate &&
-      echo '🚀 Запуск сервера...' &&
+      echo 'Запуск сервера...' &&
       python manage.py runserver 0.0.0.0:8000
       "
     restart: unless-stopped
