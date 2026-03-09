@@ -40,8 +40,8 @@ db.sqlite3-journal
 /static
 
 # Database data (PostgreSQL, pgAdmin)
-postgres_data/
-!postgres_data/global/*
+postgres_data/base/*
+#!postgres_data/global/*
 pgadmin_data/
 *.db
 
