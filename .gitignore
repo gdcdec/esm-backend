@@ -1,6 +1,7 @@
 # Python
 __pycache__/
-api/__pycache__/
+/api/__pycache__/
+/api/utils/__pycache__/
 *.py[cod]
 *$py.class
 *.so
