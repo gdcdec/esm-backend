@@ -46,6 +46,7 @@ db.sqlite3-journal
 /postgres_data/pg_logical
 /postgres_data/pg_stat/
 #!postgres_data/global/*
+/postgres_data
 pgadmin_data/
 *.db
 
