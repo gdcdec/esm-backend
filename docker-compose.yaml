@@ -18,39 +18,14 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-
-  pgadmin4:
-    image: dpage/pgadmin4:latest
-    container_name: pgadmin4
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
-      - PGADMIN_DEFAULT_PASSWORD=admin
-      - PYTHONWARNINGS=ignore
-      - PGADMIN_CONFIG_SERVER_MODE=False
-    volumes:
-      - ./pgadmin_data:/var/lib/pgadmin
-    ports:
-      - "80:80"
-    networks:
-      - my-network
-    restart: unless-stopped
-    user: "5050:5050"
-    depends_on:  # ОДИН depends_on
-      postgres-db:
-        condition: service_healthy
-    entrypoint: >
-      sh -c "
-      chown -R 5050:5050 /var/lib/pgadmin &&
-      chmod -R 755 /var/lib/pgadmin &&
-      exec /entrypoint.sh
-      "
+    user: "${MY_UID:-1000}:${MY_GID:-1000}"  # Используем MY_UID
 
   django:
     build:
       context: .
       args:
-        UID: ${UID:-1000} # Take UID from environment else use 1000
-        GID: ${GID:-1000} # Take GID from environment else use 1000
+        UID: ${MY_UID:-1000}  # Передаем как UID в Dockerfile
+        GID: ${MY_GID:-1000}
     container_name: django-app
     volumes:
       - .:/app
@@ -71,16 +46,13 @@ services:
     depends_on:
       postgres-db:
         condition: service_healthy
-    user: "${UID:-1000}:${GID:-1000}"
+    user: "${MY_UID:-1000}:${MY_GID:-1000}"  # Используем MY_UID
     command: >
       sh -c "
-      echo 'Проверка прав доступа...' &&
-      touch /app/test_write && rm /app/test_write &&
-      echo 'Права на запись есть' &&
       echo 'Ожидание PostgreSQL...' &&
       python wait_for_db.py &&
       echo 'Применение миграций...' &&
-      python manage.py makemigrations --merge &&
+      python manage.py makemigrations api &&
       python manage.py migrate &&
       echo 'Запуск сервера...' &&
       python manage.py runserver 0.0.0.0:8000
