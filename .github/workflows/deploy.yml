@@ -17,6 +17,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
+            set -x
             cd $HOME/esm-backend
             sudo rm -rf api/migrations/* pgadmin_data/ postgres_data/
             touch api/migrations/__init__.py
