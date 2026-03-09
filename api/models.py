@@ -235,7 +235,7 @@ class Post(models.Model):
         ('published', 'Опубликован'),
         ('archived', 'В архиве'),
         ('check', 'На рассмотрении'),
-        ('banned', 'Забанен'),
+        #('banned', 'Забанен'),
     ]
     
     status = models.CharField(
