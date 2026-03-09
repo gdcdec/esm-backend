@@ -80,6 +80,7 @@ services:
       echo 'Ожидание PostgreSQL...' &&
       python wait_for_db.py &&
       echo 'Применение миграций...' &&
+      python manage.py makemigrations --merge &&
       python manage.py migrate &&
       echo 'Запуск сервера...' &&
       python manage.py runserver 0.0.0.0:8000
