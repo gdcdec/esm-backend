@@ -216,7 +216,7 @@ class PostCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = ['id', 'title', 'description', 'address', 'latitude', 'longitude', 'rubric', 'status']
-        read_only_fields = ['id']
+        read_only_fields = ['id'] 
     
     def create(self, validated_data):
         validated_data['author'] = self.context['request'].user
@@ -242,8 +242,8 @@ class PostUpdateSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Post
-        fields = ['title', 'description', 'address', 'latitude', 'longitude', 'rubric', 'status']
-    
+        fields = ['id', 'title', 'description', 'address', 'latitude', 'longitude', 'rubric', 'status']
+        read_only_fields = ['id'] 
     def validate_status(self, value):
         user = self.context['request'].user
         
