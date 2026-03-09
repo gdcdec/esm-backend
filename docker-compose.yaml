@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres-db:
     image: postgres:15
@@ -40,13 +38,19 @@ services:
     depends_on:  # ОДИН depends_on
       postgres-db:
         condition: service_healthy
+    entrypoint: >
+      sh -c "
+      chown -R 5050:5050 /var/lib/pgadmin &&
+      chmod -R 755 /var/lib/pgadmin &&
+      exec /entrypoint.sh
+      "
 
   django:
     build:
       context: .
       args:
-        - UID=${UID:-1000}  # Берем UID из окружения или используем 1000 по умолчанию
-        - GID=${GID:-1000}
+        UID: ${UID:-1000} # Take UID from environment else use 1000
+        GID: ${GID:-1000} # Take GID from environment else use 1000
     container_name: django-app
     volumes:
       - .:/app
