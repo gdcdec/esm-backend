@@ -1,7 +1,7 @@
 #!/bin/sh -x
 
-sudo rm -rf api/migrations/* pgadmin_data/ postgres_data/
-touch api/migrations/__init__.py
+#sudo rm -rf api/migrations/* pgadmin_data/ postgres_data/
+#touch api/migrations/__init__.py
 
 UID=`id -u` GID=`id -g` docker compose up -d --build
 
