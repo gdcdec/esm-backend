@@ -5,5 +5,5 @@
 
 UID=`id -u` GID=`id -g` docker compose up -d --build
 
-docker compose exec django python manage.py makemigrations --merge
-docker compose exec django python manage.py migrate
+#docker compose exec django python manage.py makemigrations --merge
+#docker compose exec django python manage.py migrate
