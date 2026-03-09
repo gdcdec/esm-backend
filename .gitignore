@@ -41,9 +41,9 @@ db.sqlite3-journal
 /static
 
 # Database data (PostgreSQL, pgAdmin)
-postgres_data/base/
-postgres_data/pg_logical/
-postgres_data/pg_stat/
+/postgres_data/base/
+/postgres_data/pg_logical
+/postgres_data/pg_stat/
 #!postgres_data/global/*
 pgadmin_data/
 *.db
@@ -117,3 +117,4 @@ cython_debug/
 # OS
 Thumbs.db
 .DS_Store
+/postgres_data/pg_logical
