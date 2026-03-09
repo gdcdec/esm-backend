@@ -19,10 +19,10 @@ python manage.py runserver
 
 ### Docker
 
-Запустить shell-скрипт от имени привилигированного пользователя:
+Запустить shell-скрипт:
 
 ```bash
-sudo ./run_compose.sh
+./run_compose.sh
 ```
 
 API: `http://localhost:8000/api/`

@@ -4,7 +4,7 @@ FROM python:3.12-slim
 ARG UID=1000
 ARG GID=1000
 
-# Создаем группу и пользователя с указанными UID/GID
+
 RUN groupadd -g ${GID} appuser && \
     useradd -m -u ${UID} -g appuser appuser && \
     mkdir -p /app && \
@@ -12,7 +12,9 @@ RUN groupadd -g ${GID} appuser && \
 
 WORKDIR /app
 
-# Устанавливаем зависимости для psycopg2 и Pillow (от root)
+# Устанавливаем зависимости для psycopg2 и Pillow (от root) 
+RUN sed -i 's/deb.debian.org/mirror.yandex.ru/g' /etc/apt/sources.list.d/debian.sources
+
 RUN apt-get update && apt-get install -y \
     gcc \
     libpq-dev \
@@ -21,13 +23,13 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Копируем requirements.txt
+
 COPY requirements.txt .
 
-# Устанавливаем Python-зависимости (от root)
+
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копируем весь проект
+
 COPY . .
 
 # Меняем владельца всех файлов на appuser

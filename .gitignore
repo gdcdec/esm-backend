@@ -1,7 +1,5 @@
 # Python
 __pycache__/
-/api/__pycache__/
-/api/utils/__pycache__/
 *.py[cod]
 *$py.class
 *.so
@@ -42,11 +40,7 @@ db.sqlite3-journal
 /static
 
 # Database data (PostgreSQL, pgAdmin)
-/postgres_data/base/
-/postgres_data/pg_logical
-/postgres_data/pg_stat/
-#!postgres_data/global/*
-/postgres_data
+postgres_data/
 pgadmin_data/
 *.db
 
@@ -119,4 +113,3 @@ cython_debug/
 # OS
 Thumbs.db
 .DS_Store
-/postgres_data/pg_logical
