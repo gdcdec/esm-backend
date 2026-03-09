@@ -1,7 +1,4 @@
-# PgAdmin4 death
-pgadmin_data/
 # Python
-project_venv/
 __pycache__/
 *.py[cod]
 *$py.class
@@ -44,6 +41,7 @@ db.sqlite3-journal
 
 # Database data (PostgreSQL, pgAdmin)
 postgres_data/
+!postgres_data/global/*
 pgadmin_data/
 *.db
 
