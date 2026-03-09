@@ -11,7 +11,9 @@ if [ -d "postgres_data" ]; then
 else
     mkdir -p postgres_data
 fi
-
+# Исправляем права на pgadmin4
+sudo chown -R 5050:5050 pgadmin_data
+sudo chmod -R 755 pgadmin_data
 # Исправляем права на migrations
 echo "Подготовка папки миграций..."
 mkdir -p api/migrations

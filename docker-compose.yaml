@@ -20,6 +20,32 @@ services:
       retries: 5
     user: "${MY_UID:-1000}:${MY_GID:-1000}"  # Используем MY_UID
 
+  pgadmin4:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+      - PYTHONWARNINGS=ignore
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    volumes:
+      - ./pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "80:80"
+    networks:
+      - my-network
+    restart: unless-stopped
+    user: "5050:5050"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "
+      chown -R 5050:5050 /var/lib/pgadmin &&
+      chmod -R 755 /var/lib/pgadmin &&
+      exec /entrypoint.sh
+      "
+
   django:
     build:
       context: .
