@@ -233,7 +233,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/posts/",
+              "raw": "{{base_url}}/posts/?address={{test_address}}",
               "host": [
                 "{{base_url}}"
               ],
@@ -245,6 +245,23 @@
                 {
                   "key": "address",
                   "value": "{{test_address}}",
+                  "type": "text"
+                },
+                {
+                  "key": "city",
+                  "value": "Самара",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "state",
+                  "value": "Самарская",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "house_number",
+                  "value": "77",
                   "type": "text",
                   "disabled": true
                 },
@@ -335,6 +352,57 @@
                 "value": "Token {{auth_token}}"
               }
             ],
+            "url": {
+              "raw": "{{base_url}}/posts/{{post_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "{{post_id}}",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Отправить doc по посту",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"✅ Статус 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "",
+                  "pm.test(\"✅ Есть doc_url\", function() {",
+                  "    pm.expect(response).to.have.property('doc_url');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"doc\": \"1\"\n}"
+            },
             "url": {
               "raw": "{{base_url}}/posts/{{post_id}}/",
               "host": [
