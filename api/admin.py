@@ -27,15 +27,20 @@ class PostPhotoInline(admin.TabularInline):
 
 @admin.register(Rubric)
 class RubricAdmin(admin.ModelAdmin):
-    list_display = ('name', 'counter', 'posts_count')
+    list_display = ('name', 'counter', 'posts_count', 'photo_preview')
     search_fields = ('name',)
     list_filter = ('counter',)
-    readonly_fields = ('counter', 'posts_count')
+    readonly_fields = ('counter', 'posts_count', 'photo_preview')
     
     def posts_count(self, obj):
-        """Количество постов в рубрике"""
         return obj.posts.count()
     posts_count.short_description = "Постов"
+    
+    def photo_preview(self, obj):
+        if obj.photo:
+            return format_html('<img src="{}" style="max-height: 50px;" />', obj.photo.url)
+        return "Нет фото"
+    photo_preview.short_description = "Фото"
 
 
 @admin.register(Post)

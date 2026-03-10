@@ -1,11 +1,11 @@
 {
   "info": {
-    "_postman_id": "d2c4611b-f7be-43fb-9dc7-566dd6f442cf",
+    "_postman_id": "6630fe8e-899b-4131-8ae0-bd341f155f18",
     "name": "Posts and Photos Tests",
     "description": "Полное тестирование постов и фотографий",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "43786527",
-    "_collection_link": "https://go.postman.co/collection/43786527-d2c4611b-f7be-43fb-9dc7-566dd6f442cf?source=collection_link"
+    "_collection_link": "https://go.postman.co/collection/43786527-6630fe8e-899b-4131-8ae0-bd341f155f18?source=collection_link"
   },
   "item": [
     {
@@ -786,6 +786,88 @@
               "path": [
                 "posts",
                 "{{post_id}}",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Получить фото рубрики по урл",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"rubric\": \"Тестовая рубрика\",\n    \"photo_url\": \"http://0.0.0.0:8000/media/rubrics/test1.jpg\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/rubric/Тестовая рубрика/photo-url/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rubric",
+                "Тестовая рубрика",
+                "photo-url",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Получить фото рубрики без урл",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{base_url}}/rubrics/Тестовая рубрика/photo/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rubrics",
+                "Тестовая рубрика",
+                "photo",
                 ""
               ]
             }

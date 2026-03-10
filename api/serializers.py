@@ -9,19 +9,36 @@ User = get_user_model()
 
 
 class RubricSerializer(serializers.ModelSerializer):
-    posts_count = serializers.IntegerField(source='posts.count', read_only=True)
+    # Добавляем поле для отображения URL фото
+    photo_url = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = Rubric
-        fields = ['name', 'counter', 'posts_count'] # id не нужен, так как name - это и есть первичный ключ
-        read_only_fields = ['counter']  # счётчик только для чтения через API
+        fields = [
+            'name',           # первичный ключ
+            'counter',        # счётчик
+            'photo',          # поле для загрузки фото
+            'photo_url',      # URL для отображения фото (только для чтения)
+        ]
+        read_only_fields = ['counter']  # counter обновляется только через методы
     
-    def validate_name(self, value):
-        """Валидация имени рубрики"""
-        if len(value) < 2:
-            raise serializers.ValidationError("Название рубрики должно быть не короче 2 символов")
-        if len(value) > 100:
-            raise serializers.ValidationError("Название рубрики должно быть не длиннее 100 символов")
+    def get_photo_url(self, obj):
+        """Возвращает URL фото или None"""
+        return obj.get_photo_url()
+    
+    def validate_photo(self, value):
+        """Валидация фото"""
+        if value:
+            # Проверка размера (макс 5MB)
+            if value.size > 5 * 1024 * 1024:
+                raise serializers.ValidationError("Размер фото не должен превышать 5MB")
+            
+            # Проверка типа файла
+            allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+            if value.content_type not in allowed_types:
+                raise serializers.ValidationError(
+                    f"Поддерживаются только: {', '.join(allowed_types)}"
+                )
         return value
 
 class UserRegistrationSerializer(serializers.ModelSerializer):

@@ -10,18 +10,18 @@ from .models import Rubric, CustomUser
 from .serializers import RubricSerializer, UserRegistrationSerializer
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.authentication import TokenAuthentication
 from django.contrib.auth import logout
 from django.contrib.auth import get_user_model
-
+from django.http import FileResponse
 from .models import PasswordReset
 from .serializers import (
     PasswordResetRequestSerializer,
     PasswordResetVerifySerializer,
     PasswordResetConfirmSerializer
 )
-
+from rest_framework.decorators import api_view
 from rest_framework.parsers import MultiPartParser, FormParser
 from .models import Post, PostPhoto
 from .serializers import (
@@ -41,43 +41,63 @@ from .utils.nominatim import reverse_geocode, search, parse_reverse_response
 User = get_user_model()
 # Create your views here.
 
-
+@api_view(['GET'])
+def get_rubric_photo_url(request, rubric_name):
+    """
+    Получить URL фото рубрики по её названию
+    """
+    try:
+        rubric = Rubric.objects.get(name=rubric_name)
+        
+        if rubric.photo:
+            return Response({
+                'rubric': rubric.name,
+                'photo_url': request.build_absolute_uri(rubric.photo.url)
+            })
+        else:
+            return Response(
+                {'error': 'У рубрики нет фото'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+            
+    except Rubric.DoesNotExist:
+        return Response(
+            {'error': 'Рубрика не найдена'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
 class RubricViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet для работы с рубриками:
-    - GET /api/rubrics/ - список всех рубрик
-    - POST /api/rubrics/ - создать новую рубрику
-    - GET /api/rubrics/{name}/ - получить конкретную рубрику
-    - PUT /api/rubrics/{name}/ - обновить рубрику
-    - PATCH /api/rubrics/{name}/ - частично обновить
-    - DELETE /api/rubrics/{name}/ - удалить рубрику
-    """
     queryset = Rubric.objects.all()
     serializer_class = RubricSerializer
-    lookup_field = 'name'  # ищем по name вместо id
-    
+    lookup_field = 'name'  # так как первичный ключ - name
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    @action(detail=True, methods=['get'], url_path='photo')
+    def get_photo(self, request, name=None):
+        """
+        Получить фото рубрики
+        """
+        rubric = self.get_object()
+        
+        if rubric.photo:
+            return FileResponse(rubric.photo, content_type='image/jpeg')
+        else:
+            return Response(
+                {'error': 'У рубрики нет фото'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
     @action(detail=True, methods=['post'])
     def increment(self, request, name=None):
         """Увеличить счётчик рубрики"""
         rubric = self.get_object()
         rubric.increment_counter()
-        return Response({
-            'status': 'success',
-            'name': rubric.name,
-            'counter': rubric.counter
-        })
+        return Response({'counter': rubric.counter})
     
     @action(detail=True, methods=['post'])
     def decrement(self, request, name=None):
         """Уменьшить счётчик рубрики"""
         rubric = self.get_object()
         rubric.decrement_counter()
-        return Response({
-            'status': 'success',
-            'name': rubric.name,
-            'counter': rubric.counter
-        })
-    
+        return Response({'counter': rubric.counter})    
     @action(detail=False, methods=['get'])
     def top(self, request):
         """Получить топ-5 рубрик по счётчику"""

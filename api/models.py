@@ -25,6 +25,14 @@ class Rubric(models.Model):
         help_text="Количество элементов в рубрике"
     )
     
+    # Новое поле для фото (необязательное)
+    photo = models.ImageField(
+        upload_to='rubrics/',
+        blank=True,
+        null=True,
+        verbose_name="Фото рубрики"
+    )
+    
     class Meta:
         verbose_name = "Рубрика"
         verbose_name_plural = "Рубрики"
@@ -36,13 +44,19 @@ class Rubric(models.Model):
     def increment_counter(self):
         """Увеличить счётчик на 1"""
         self.counter += 1
-        self.save()
+        self.save(update_fields=['counter'])
     
     def decrement_counter(self):
         """Уменьшить счётчик на 1 (не ниже 0)"""
         if self.counter > 0:
             self.counter -= 1
-            self.save()
+            self.save(update_fields=['counter'])
+    
+    def get_photo_url(self):
+        """Получить URL фото или None"""
+        if self.photo:
+            return self.photo.url
+        return None
 
 
 class CustomUser(AbstractUser):

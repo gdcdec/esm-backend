@@ -17,6 +17,7 @@ from .views import (
     AddressReverseView,
     AddressSearchView,
     RubricViewSet,
+    get_rubric_photo_url,
 )
 
 # router используем когда с таблицей однотипные действия делают
@@ -31,7 +32,7 @@ urlpatterns = [
         # Маршруты от роутера (будут /api/rubrics/, /api/rubrics/1/)
         path('', include(router.urls)),
         
-        
+        path('rubric/<str:rubric_name>/photo-url/', views.get_rubric_photo_url, name='rubric-photo-url'),
         
         # Посты
         path('posts/', views.PostListView.as_view(), name='post-list'),
