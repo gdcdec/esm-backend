@@ -7,9 +7,14 @@ echo "Подготовка окружения..."
 # Исправляем права на postgres_data
 if [ -d "postgres_data" ]; then
     echo "Исправление прав postgres_data..."
-    sudo chmod -R 755 postgres_data 2>/dev/null || true
+    # Удаляем старую директорию или меняем владельца на postgres (UID 999)
+    # ВАЖНО: НЕ используем chmod 755, так как PostgreSQL требует владельца postgres
+    sudo chown -R 999:999 postgres_data 2>/dev/null || sudo chown -R 999:999 postgres_data
+    sudo chmod 700 postgres_data  # PostgreSQL требует 700 для безопасности
 else
     mkdir -p postgres_data
+    sudo chown 999:999 postgres_data
+    chmod 700 postgres_data
 fi
 # Исправляем права на pgadmin4
 sudo chown -R 5050:5050 pgadmin_data
@@ -31,19 +36,20 @@ fi
 
 # Останавливаем старые контейнеры
 echo "Остановка старых контейнеров..."
-docker compose down
+docker compose down -v 2>/dev/null || docker compose down
 
-# Запускаем с текущим пользователем
-export MY_UID=$(id -u)
-export MY_GID=$(id -g)
+# НЕ экспортируем MY_UID и MY_GID для PostgreSQL, так как это ломает права
+# Вместо этого удаляем эти переменные из окружения
+unset MY_UID
+unset MY_GID
 
-echo "Запуск с UID=$MY_UID, GID=$MY_GID"
+echo "Запуск контейнеров..."
 docker compose up -d
 
 # Ждем инициализации
-echo "Ожидание запуска..."
-sleep 5
+echo "Ожидание запуска (30 секунд)..."
+sleep 30
 
 # Показываем логи
-echo "Логи контейнеров:"
+echo "Логи контейнеров (Ctrl+C для выхода):"
 docker compose logs --tail=50 -f
