@@ -1,6 +1,11 @@
 services:
   postgres-db:
-    image: postgres:15
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+      args:
+        UID: ${MY_UID:-1000}
+        GID: ${MY_GID:-1000}
     container_name: postgres-db
     environment:
       - POSTGRES_PASSWORD=mysecretpassword
@@ -18,7 +23,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    user: "${MY_UID:-1000}:${MY_GID:-1000}"  # Используем MY_UID
+    # НЕТ user: ... так как пользователь задан в Dockerfile
 
   pgadmin4:
     image: dpage/pgadmin4:latest
@@ -49,8 +54,9 @@ services:
   django:
     build:
       context: .
+      dockerfile: Dockerfile
       args:
-        UID: ${MY_UID:-1000}  # Передаем как UID в Dockerfile
+        UID: ${MY_UID:-1000}
         GID: ${MY_GID:-1000}
     container_name: django-app
     volumes:
@@ -72,7 +78,7 @@ services:
     depends_on:
       postgres-db:
         condition: service_healthy
-    user: "${MY_UID:-1000}:${MY_GID:-1000}"  # Используем MY_UID
+    user: "${MY_UID:-1000}:${MY_GID:-1000}"
     command: >
       sh -c "
       echo 'Ожидание PostgreSQL...' &&

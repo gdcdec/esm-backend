@@ -3,10 +3,22 @@ FROM postgres:15
 ARG UID=1000
 ARG GID=1000
 
-
-RUN groupadd -g ${GID} postgres && \
-    useradd -u ${UID} -g postgres postgres && \
-    mkdir -p /var/lib/postgresql/data && \
+# Меняем UID/GID существующего пользователя postgres
+RUN set -ex; \
+    # Если группа postgres уже существует, меняем её GID
+    if getent group postgres >/dev/null; then \
+        groupmod -g ${GID} postgres; \
+    else \
+        groupadd -g ${GID} postgres; \
+    fi; \
+    # Если пользователь postgres уже существует, меняем его UID
+    if getent passwd postgres >/dev/null; then \
+        usermod -u ${UID} -g ${GID} postgres; \
+    else \
+        useradd -u ${UID} -g ${GID} postgres; \
+    fi; \
+    # Создаем директорию с правильными правами
+    mkdir -p /var/lib/postgresql/data; \
     chown -R postgres:postgres /var/lib/postgresql/data
 
 USER postgres
