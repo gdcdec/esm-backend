@@ -35,7 +35,6 @@ from .serializers import (
     AddressSearchSerializer,
 )
 from datetime import datetime, timedelta
-from django.conf import settings
 from .utils.email_utils import send_password_reset_email
 from .utils.nominatim import reverse_geocode, search, parse_reverse_response
 
@@ -319,9 +318,15 @@ class PasswordResetStatusView(APIView):
 # Posts
 class PostListView(generics.ListCreateAPIView):
     """
-    GET /api/posts/ - список постов (с фильтрацией по рубрике)
+    GET /api/posts/ - список постов (с фильтрацией)
         Параметры:
         - rubric: фильтр по названию рубрики (например, ?rubric=Новости)
+        - city: фильтр по городу события (из адреса поста, например ?city=Самара)
+        - state: фильтр по области события (из адреса поста, например ?state=Самарская)
+        - address: фильтр по адресу события (например, ?address=Московское Шоссе)
+        - house_number: фильтр по номеру дома (например, ?house_number=77)
+        - author_id: фильтр по ID автора
+        - date_start, date_end: фильтр по периоду (YYYY-MM-DD)
     
     POST /api/posts/ - создание поста
     """
@@ -343,6 +348,22 @@ class PostListView(generics.ListCreateAPIView):
         rubric_name = self.request.query_params.get('rubric', None)
         if rubric_name:
             queryset = queryset.filter(rubric__name=rubric_name)
+        # ФИЛЬТРАЦИЯ ПО ГОРОДУ 
+        city = self.request.query_params.get('city', None)
+        if city:
+            queryset = queryset.filter(address__icontains=city)
+        # ФИЛЬТРАЦИЯ ПО ОБЛАСТИ
+        state = self.request.query_params.get('state', None)
+        if state:
+            queryset = queryset.filter(address__icontains=state)
+        # ФИЛЬТРАЦИЯ ПО АДРЕСУ СОБЫТИЯ
+        address = self.request.query_params.get('address', None)
+        if address:
+            queryset = queryset.filter(address__icontains=address)
+        # ФИЛЬТРАЦИЯ ПО НОМЕРУ ДОМА
+        house_number = self.request.query_params.get('house_number', None)
+        if house_number:
+            queryset = queryset.filter(address__icontains=house_number)
         # ФИЛЬТРАЦИЯ ПО АВТОРУ
         author_id = self.request.query_params.get('author_id')
         if author_id:
@@ -377,12 +398,6 @@ class PostListView(generics.ListCreateAPIView):
             # Только конечная дата
             queryset = queryset.filter(published_at__lte=date_end)
         """
-        # ФИЛЬТРАЦИЯ ПО АДРЕСУ (?address=...)
-        address = self.request.query_params.get('address')
-        if address:
-            queryset = queryset.filter(address__icontains=address)
-
-        
         # Фильтрация по статусу в зависимости от пользователя
         need_his = self.request.query_params.get('self')
         if user.is_authenticated and need_his == '1':
@@ -421,6 +436,25 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
         if self.request.method in ['PUT', 'PATCH']:
             return PostUpdateSerializer
         return PostSerializer
+
+    def post(self, request, *args, **kwargs):
+        """
+        Дополнительный POST по /api/posts/<id>/:
+        если в JSON есть {"doc": "1"}, возвращаем ссылку на документ.
+        """
+        doc_flag = str(request.data.get('doc', '')).strip()
+        if doc_flag == '1':
+            return Response(
+                {
+                    "doc_url": "https://example.com/document-placeholder",
+                    "message": "Ссылка на документ (заглушка)"
+                },
+                status=status.HTTP_200_OK,
+            )
+        return Response(
+            {"detail": "Некорректный параметр doc, ожидается '1'."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
     
     def check_object_permissions(self, request, obj):
         # Проверка прав доступа для изменения/удаления
@@ -533,7 +567,6 @@ class PostPhotoDeleteView(generics.DestroyAPIView):
 class AddressReverseView(APIView):
     """
     Обратное геокодирование: координаты → адрес (Nominatim reverse).
-    Проверяет, входит ли точка в районы работы проекта.
     """
     permission_classes = [permissions.AllowAny]
 
@@ -552,31 +585,7 @@ class AddressReverseView(APIView):
             )
 
         parsed = parse_reverse_response(data)
-        working_areas = getattr(
-            settings, 'PROJECT_WORKING_AREAS', ['Самара', 'Самарская область']
-        )
-        city = parsed.get('city') or ''
-        state = parsed.get('state') or ''
-        in_working_area = any(
-            area.lower() in (city + ' ' + state).lower()
-            for area in working_areas
-            if area
-        )
-
-        if not in_working_area:
-            return Response({
-                'in_working_area': False,
-                'message': 'В данном районе проект пока не работает',
-                'address': parsed.get('address', ''),
-                'latitude': parsed.get('latitude'),
-                'longitude': parsed.get('longitude'),
-                'city': parsed.get('city'),
-                'street': parsed.get('street'),
-                'house': parsed.get('house'),
-            }, status=status.HTTP_200_OK)
-
         return Response({
-            'in_working_area': True,
             'address': parsed.get('address', ''),
             'latitude': parsed.get('latitude'),
             'longitude': parsed.get('longitude'),
