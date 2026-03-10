@@ -60,6 +60,7 @@ API: `http://localhost:8000/api/`
 | GET | `/posts/` | Список постов (авторизованные видят свои черновики) |
 | POST | `/posts/` | Создать пост |
 | GET | `/posts/<id>/` | Детали поста |
+| POST | `/posts/<id>/` | Служебный POST по посту (см. ниже про `doc`) |
 | PATCH | `/posts/<id>/` | Обновить пост |
 | DELETE | `/posts/<id>/` | Удалить пост |
 | GET | `/users/<user_id>/posts/` | Посты пользователя |
@@ -68,14 +69,25 @@ API: `http://localhost:8000/api/`
 
 ---
 
-**Фильтры для списков постов (`/posts/` и `/users/<user_id>/posts/`):**
+**Фильтры для списков постов (`/posts/` и частично `/users/<user_id>/posts/`):**
 
-- `?rubric=<name>` — только посты указанной рубрики (по имени рубрики).
-- `?address=<строка>` — поиск по адресу (подстрока в поле `address`, регистр не важен).  
-  Примеры:
-  - `GET /api/posts/?address=Ленина`
-  - `GET /api/users/1/posts/?address=Ленина`  
-  Вернёт все посты, в чьём `address` встречается указанная строка (например, `"ул. Ленина, 1"`).
+- `?rubric=<name>` — фильтр по рубрике (по имени рубрики).
+- `?city=<строка>` — город/населённый пункт (подстрока в `address`, например `?city=Самара`).
+- `?state=<строка>` — область/регион (подстрока в `address`, например `?state=Самарская`).
+- `?address=<строка>` — общая подстрока в `address` (улица, часть адреса и т.п.).
+- `?house_number=<строка>` — номер дома (также ищется как подстрока в `address`).
+- `?author_id=<id>` — фильтр по автору (только для `/posts/`).
+- `?date_start=YYYY-MM-DD` / `?date_end=YYYY-MM-DD` — фильтр по периоду публикации (для `/posts/`).
+- Для `/users/<user_id>/posts/` доступны: `rubric`, `address`, а также `status` (для своих постов).
+
+**Служебный POST по посту (`/posts/<id>/` с `doc`):**
+
+- Запрос:
+  - `POST /api/posts/<id>/`
+  - Body: `{"doc": "1"}`
+- Ответ:
+  - При `doc == "1"` → `{"doc_url": "<заглушка>", "message": "Ссылка на документ (заглушка)"}`.
+  - Иначе → `400 Bad Request` с сообщением о некорректном параметре `doc`.
 
 ---
 ### Фотографии
@@ -97,8 +109,7 @@ API: `http://localhost:8000/api/`
 | GET | `/address/search/?q=...&limit=5` | Поиск по адресу |
 
 **Reverse** — body: `{"lat": 53.225664, "lon": 50.194162}`  
-Ответ: `{in_working_area, address, latitude, longitude, city, street, house}`  
-При `in_working_area: false` возвращается сообщение «В данном районе проект пока не работает».
+Ответ: `{address, latitude, longitude, city, street, house}` — работает для любых координат.
 
 ---
 
@@ -116,7 +127,6 @@ API: `http://localhost:8000/api/`
 
 | Переменная | Описание |
 |------------|----------|
-| `PROJECT_WORKING_AREAS` | Города/области проекта (через запятую), напр. `Самара,Самарская область` |
 | `NOMINATIM_USER_AGENT` | User-Agent для Nominatim |
 | `NOMINATIM_REFERER` | Referer для Nominatim |
 | `DB_*` | PostgreSQL (DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT) |

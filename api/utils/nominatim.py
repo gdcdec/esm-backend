@@ -116,15 +116,31 @@ def search(query: str, limit: int = 5) -> list:
     return result
 
 
+def _get_locality(addr: dict) -> Optional[str]:
+    """Населённый пункт: город, посёлок, деревня и т.д."""
+    for key in ("city", "town", "village", "hamlet", "municipality", "locality", "place", "county"):
+        val = addr.get(key)
+        if val:
+            return str(val)
+    return None
+
+
 def build_address_from_osm(address_parts: dict) -> str:
     """
     Собирает строку адреса из address_parts ответа Nominatim.
-    Маппинг по ТЗ: city, road, house_number → display_name
+    Включает village/hamlet (посёлок, деревня) — для малых населённых пунктов.
     """
     if not address_parts:
         return ""
     parts = []
-    for key in ["house_number", "road", "city", "state", "country"]:
+    for key in ["house_number", "road"]:
+        val = address_parts.get(key)
+        if val:
+            parts.append(str(val))
+    locality = _get_locality(address_parts)
+    if locality:
+        parts.append(locality)
+    for key in ["state", "country"]:
         val = address_parts.get(key)
         if val:
             parts.append(str(val))
@@ -152,8 +168,8 @@ def parse_reverse_response(data: dict) -> dict:
     return {
         "latitude": float(data.get("lat", 0)),
         "longitude": float(data.get("lon", 0)),
-        "address": build_address_from_osm(addr) or data.get("display_name", ""),
-        "city": addr.get("city") or addr.get("town") or addr.get("village"),
+        "address": data.get("display_name") or build_address_from_osm(addr),
+        "city": _get_locality(addr),
         "street": addr.get("road"),
         "house": addr.get("house_number"),
         "state": addr.get("state") or addr.get("region"),
