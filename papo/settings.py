@@ -175,7 +175,7 @@ AUTHENTICATION_BACKENDS = [
 #EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # Для продакшена (пример с Gmail)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.yandex.ru' #'smtp.gmail.com'
+EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'paposerver1@gmail.com'
