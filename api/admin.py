@@ -81,32 +81,71 @@ class PostAdmin(admin.ModelAdmin):
     inlines = [PostPhotoInline]
     
     def title_preview(self, obj):
-        """Превью заголовка с обрезанием"""
-        if len(obj.title) > 50:
-            return f"{obj.title[:50]}..."
-        return obj.title
+        """Превью заголовка с обрезанием - защищено от None"""
+        # Проверяем, что obj существует
+        if not obj:
+            return "[Нет объекта]"
+        
+        # Проверяем title на None
+        if obj.title is None:
+            return "[Без заголовка]"
+        
+        # Проверяем, что title - строка
+        if not isinstance(obj.title, str):
+            try:
+                title_str = str(obj.title)
+            except:
+                return "[Нестроковый заголовок]"
+        else:
+            title_str = obj.title
+        
+        # Если пустая строка
+        if title_str == "":
+            return "[Пустой заголовок]"
+        
+        # Обрезаем если длинный
+        if len(title_str) > 50:
+            return f"{title_str[:50]}..."
+        return title_str
+    
     title_preview.short_description = "Заголовок"
+    
+    # Также добавьте защиту в search_fields, чтобы поиск по None не падал
+    def get_search_results(self, request, queryset, search_term):
+        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+        # Дополнительная защита от поиска по None
+        return queryset, use_distinct
     
     def photo_count_display(self, obj):
         """Отображение количества фото"""
-        count = obj.photo_count
-        if count:
-            return format_html(
-                '<b style="color: green;">{} фото</b>',
-                count
-            )
+        try:
+            count = obj.photo_count
+            if count:
+                return format_html(
+                    '<b style="color: green;">{} фото</b>',
+                    count
+                )
+        except:
+            pass
         return '<span style="color: gray;">нет фото</span>'
     photo_count_display.short_description = "Фото"
     
     def has_photos(self, obj):
         """Есть ли фото"""
-        return obj.photos.exists()
+        try:
+            return obj.photos.exists()
+        except:
+            return False
     has_photos.boolean = True
     has_photos.short_description = "Есть фото"
     
     def first_photo_preview(self, obj):
         """Превью первого фото с защитой от ошибок"""
         try:
+            # Проверяем obj
+            if not obj:
+                return "Нет объекта"
+            
             first = obj.first_photo
             if first and first.photo:
                 return format_html(
@@ -115,13 +154,17 @@ class PostAdmin(admin.ModelAdmin):
                 )
         except Exception as e:
             # Логируем ошибку для отладки
-            print(f"Error in first_photo_preview for post {obj.id}: {e}")
+            print(f"Error in first_photo_preview for post {getattr(obj, 'id', 'None')}: {e}")
         return "Нет фотографий или ошибка"
     first_photo_preview.short_description = "Главное фото"
     
     def all_photos_preview(self, obj):
         """Превью всех фото с защитой от ошибок"""
         try:
+            # Проверяем obj
+            if not obj:
+                return "Нет объекта"
+            
             photos = obj.photos.all()
             if not photos:
                 return "Нет фотографий"
@@ -130,21 +173,27 @@ class PostAdmin(admin.ModelAdmin):
             for photo in photos:
                 try:
                     if photo and photo.photo:
+                        # Безопасное получение order и caption
+                        order = photo.order if photo.order is not None else '?'
+                        caption = photo.caption or 'без подписи'
+                        
                         html += format_html(
                             '<div style="border: 1px solid #ddd; padding: 5px;">'
                             '<img src="{}" style="max-height: 100px; max-width: 100px;" /><br/>'
                             '<small>{}: {}</small>'
                             '</div>',
                             photo.photo.url,
-                            photo.order if photo.order else '?',
-                            photo.caption or 'без подписи'
+                            order,
+                            caption
                         )
                 except Exception as e:
-                    html += f'<div style="border: 1px solid red; padding: 5px;">Ошибка фото #{photo.id if photo.id else "?"}</div>'
+                    photo_id = getattr(photo, 'id', '?')
+                    html += f'<div style="border: 1px solid red; padding: 5px;">Ошибка фото #{photo_id}</div>'
             html += '</div>'
             return format_html(html)
         except Exception as e:
-            print(f"Error in all_photos_preview for post {obj.id}: {e}")
+            obj_id = getattr(obj, 'id', 'None')
+            print(f"Error in all_photos_preview for post {obj_id}: {e}")
             return "Ошибка загрузки фотографий"
     all_photos_preview.short_description = "Все фото"
     
@@ -173,39 +222,6 @@ class PostAdmin(admin.ModelAdmin):
         updated = queryset.update(status='archived')
         self.message_user(request, f"{updated} постов архивировано")
     make_archived.short_description = "Архивировать"
-
-
-@admin.register(PostPhoto)
-class PostPhotoAdmin(admin.ModelAdmin):
-    """
-    Админка для фотографий
-    """
-    list_display = ['id', 'post_link', 'order', 'caption', 'uploaded_at', 'photo_preview']
-    list_filter = ['uploaded_at', 'post__rubric']
-    search_fields = ['caption', 'post__title']
-    readonly_fields = ['uploaded_at', 'photo_preview']
-    
-    def post_link(self, obj):
-        """Ссылка на пост"""
-        return format_html(
-            '<a href="/admin/api/post/{}/change/">Пост #{}</a>',
-            obj.post.id, obj.post.id
-        )
-    post_link.short_description = "Пост"
-    
-    def photo_preview(self, obj):
-        """Превью фото"""
-        if obj.photo:
-            return format_html(
-                '<img src="{}" style="max-height: 100px; max-width: 100px;" />',
-                obj.photo.url
-            )
-        return "Нет фото"
-    photo_preview.short_description = "Превью"
-    
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related('post')
-
 
 class CustomUserAdmin(UserAdmin):
     model = CustomUser
