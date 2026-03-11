@@ -19,10 +19,5 @@ jobs:
           script: |
             set -x
             cd $HOME/esm-backend
-            sudo rm -rf api/migrations/* pgadmin_data/ postgres_data/
-            touch api/migrations/__init__.py
             git pull origin main
-            UID=`id -u` GID=`id -g` docker compose up -d --build
-            docker compose exec django python manage.py makemigrations api
-            docker compose exec django python manage.py migrate
-            sh create_users.sh
+            sh run_compose.sh
