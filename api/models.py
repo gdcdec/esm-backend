@@ -298,7 +298,7 @@ class Post(models.Model):
         ]
     
     def __str__(self):
-        return f"Пост #{self.id}: {self.title}"
+        return f"Пост #{self.id}"
 
     
     def save(self, *args, **kwargs):
