@@ -298,10 +298,8 @@ class Post(models.Model):
         ]
     
     def __str__(self):
-        if self.id:
-            return f"Пост #{self.id}: {self.title[:50]}"
-        else:
-            return f"Нет постов!"
+        return f"Пост #{self.id}: {self.title}"
+
     
     def save(self, *args, **kwargs):
         """
