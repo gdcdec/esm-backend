@@ -390,7 +390,12 @@ class PostPhoto(models.Model):
         verbose_name_plural = "Фотографии поста"
     
     def __str__(self):
-        return f"Фото {self.order} для поста #{self.post_id}"
+        try:
+            # Безопасное получение post_id
+            post_id = self.post_id if self.post_id else 'без поста'
+            return f"Фото {self.order} для поста #{post_id}"
+        except (AttributeError, TypeError):
+            return f"Фото #{self.id if self.id else 'без ID'}"
     
     def delete(self, *args, **kwargs):
         # При удалении записи удаляем и файл

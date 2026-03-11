@@ -105,36 +105,47 @@ class PostAdmin(admin.ModelAdmin):
     has_photos.short_description = "Есть фото"
     
     def first_photo_preview(self, obj):
-        """Превью первого фото"""
-        first = obj.first_photo
-        if first and first.photo:
-            return format_html(
-                '<img src="{}" style="max-height: 200px; max-width: 200px;" />',
-                first.photo.url
-            )
-        return "Нет фотографий"
+        """Превью первого фото с защитой от ошибок"""
+        try:
+            first = obj.first_photo
+            if first and first.photo:
+                return format_html(
+                    '<img src="{}" style="max-height: 200px; max-width: 200px;" />',
+                    first.photo.url
+                )
+        except Exception as e:
+            # Логируем ошибку для отладки
+            print(f"Error in first_photo_preview for post {obj.id}: {e}")
+        return "Нет фотографий или ошибка"
     first_photo_preview.short_description = "Главное фото"
     
     def all_photos_preview(self, obj):
-        """Превью всех фото"""
-        photos = obj.photos.all()
-        if not photos:
-            return "Нет фотографий"
-        
-        html = '<div style="display: flex; flex-wrap: wrap; gap: 10px;">'
-        for photo in photos:
-            if photo.photo:
-                html += format_html(
-                    '<div style="border: 1px solid #ddd; padding: 5px;">'
-                    '<img src="{}" style="max-height: 100px; max-width: 100px;" /><br/>'
-                    '<small>{}: {}</small>'
-                    '</div>',
-                    photo.photo.url,
-                    photo.order,
-                    photo.caption or 'без подписи'
-                )
-        html += '</div>'
-        return format_html(html)
+        """Превью всех фото с защитой от ошибок"""
+        try:
+            photos = obj.photos.all()
+            if not photos:
+                return "Нет фотографий"
+            
+            html = '<div style="display: flex; flex-wrap: wrap; gap: 10px;">'
+            for photo in photos:
+                try:
+                    if photo and photo.photo:
+                        html += format_html(
+                            '<div style="border: 1px solid #ddd; padding: 5px;">'
+                            '<img src="{}" style="max-height: 100px; max-width: 100px;" /><br/>'
+                            '<small>{}: {}</small>'
+                            '</div>',
+                            photo.photo.url,
+                            photo.order if photo.order else '?',
+                            photo.caption or 'без подписи'
+                        )
+                except Exception as e:
+                    html += f'<div style="border: 1px solid red; padding: 5px;">Ошибка фото #{photo.id if photo.id else "?"}</div>'
+            html += '</div>'
+            return format_html(html)
+        except Exception as e:
+            print(f"Error in all_photos_preview for post {obj.id}: {e}")
+            return "Ошибка загрузки фотографий"
     all_photos_preview.short_description = "Все фото"
     
     def get_queryset(self, request):
