@@ -31,7 +31,7 @@
 USERS_DIR=.users
 USERS=`cat ${USERS_DIR}/users.txt`
 
-if [ -z $USERS ]; then
+if [ ! "$USERS" ]; then
     echo "WARN: At least one user should be specified"
     exit 0
 fi
