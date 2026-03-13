@@ -4,6 +4,12 @@ from .models import CustomUser
 from .models import PasswordReset
 from .models import Post, PostPhoto
 from django.contrib.auth import get_user_model
+from .validators import (
+    validate_username, validate_password_strength, validate_email_strict,
+    validate_phone_number, validate_first_name, validate_last_name,
+    validate_patronymic, validate_street, validate_house, validate_apartment,
+    validate_city, validate_title_length, validate_description_length
+)
 
 User = get_user_model()
 
@@ -42,9 +48,56 @@ class RubricSerializer(serializers.ModelSerializer):
         return value
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, style={'input_type': 'password'})
-    password2 = serializers.CharField(write_only=True, style={'input_type': 'password'}, label="Подтверждение пароля")
-    
+    password = serializers.CharField(
+        write_only=True, 
+        style={'input_type': 'password'},
+        validators=[validate_password_strength] 
+    )
+    password2 = serializers.CharField(
+        write_only=True, 
+        style={'input_type': 'password'}, 
+        label="Подтверждение пароля"
+    )
+    username = serializers.CharField(
+        validators=[validate_username]
+    )
+    email = serializers.EmailField(
+        validators=[validate_email_strict]
+    )
+    first_name = serializers.CharField(
+        validators=[validate_first_name]
+    )
+    last_name = serializers.CharField(
+        validators=[validate_last_name]
+    )
+    patronymic = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        validators=[validate_patronymic]
+    )
+    phone_number = serializers.CharField(
+        validators=[validate_phone_number]
+    )
+    city = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        validators=[validate_city]
+    )
+    street = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        validators=[validate_street]
+    )
+    house = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        validators=[validate_house]
+    )
+    apartment = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        validators=[validate_apartment]
+    )
     class Meta:
         model = CustomUser
         fields = [
@@ -57,14 +110,28 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         }
     
     def validate(self, data):
-        if data['password'] != data['password2']:
-            raise serializers.ValidationError("Пароли не совпадают")
+        # Проверка совпадения паролей можно снять, если в фронте проверяют
+        if data['password'] and data['password2']:
+            if data['password'] != data['password2']:
+                raise serializers.ValidationError({"password2": "Пароли не совпадают"})
+        
+        # Проверка уникальности username
+        if CustomUser.objects.filter(username=data['username']).exists():
+            raise serializers.ValidationError({"username": "Пользователь с таким логином уже существует"})
+        
         return data
     
     def validate_email(self, value):
         if CustomUser.objects.filter(email=value).exists():
             raise serializers.ValidationError("Пользователь с таким email уже существует")
         return value
+    
+    def validate_city(self, value):
+        # Автоматически устанавливаем Самару для MVP если друг пусто, хотя малоли что это сломает)
+        if value:
+            return value
+        else:
+            return "Самара"
     
     def create(self, validated_data):
         # Удаляем password2 и теперь с проверкой, если фронты не отправят
@@ -76,7 +143,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user = CustomUser.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
-            password=validated_data['password'],  # Пароль будет захэширован
+            password=validated_data['password'],  
             first_name=validated_data.get('first_name', ''),
             last_name=validated_data.get('last_name', ''),
             patronymic=validated_data.get('patronymic', ''),
@@ -135,12 +202,18 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     """Сериализатор для установки нового пароля"""
     email = serializers.EmailField()
     code = serializers.CharField(max_length=6)
-    new_password = serializers.CharField(min_length=6, write_only=True)
-    confirm_password = serializers.CharField(min_length=6, write_only=True)
-    
+    #new_password = serializers.CharField(min_length=6, write_only=True)
+    confirm_password = serializers.CharField(min_length=8, write_only=True)
+    new_password = serializers.CharField(
+        min_length=8,
+        write_only=True, 
+        style={'input_type': 'password'},
+        validators=[validate_password_strength] 
+    )
     def validate(self, data):
-        if data['new_password'] != data['confirm_password']:
-            raise serializers.ValidationError("Пароли не совпадают")
+        if ['new_password'] and data['confirm_password']:
+            if data['new_password'] != data['confirm_password']:
+                raise serializers.ValidationError("Пароли не совпадают")
         
         try:
             user = User.objects.get(email=data['email'])
@@ -183,7 +256,7 @@ class PostPhotoSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(obj.photo.url)
         return None
 
-
+##########
 class PostSerializer(serializers.ModelSerializer):
     """
     Полный сериализатор для поста
@@ -194,6 +267,7 @@ class PostSerializer(serializers.ModelSerializer):
     photo_count = serializers.IntegerField(read_only=True)
     first_photo = serializers.SerializerMethodField()
     rubric_name = serializers.CharField(source='rubric.name', read_only=True)
+    
     class Meta:
         model = Post
         fields = [
@@ -217,6 +291,14 @@ class PostSerializer(serializers.ModelSerializer):
             'first_photo',        # Первое фото — главное (по ТЗ)
         ]
         read_only_fields = ['author', 'created_at', 'updated_at', 'published_at']
+        extra_kwargs = {
+            'title': {
+                'validators': [validate_title_length]
+            },
+            'description': {
+                'validators': [validate_description_length]
+            }
+        }
     
     def get_first_photo(self, obj):
         """Возвращает первую фотографию для превью"""
@@ -224,6 +306,28 @@ class PostSerializer(serializers.ModelSerializer):
         if first:
             return PostPhotoSerializer(first, context=self.context).data
         return None
+    
+    def validate_title(self, value):
+        """Дополнительная валидация заголовка"""
+        # Проверка на пустую строку или только пробелы
+        if not value or not value.strip():
+            raise serializers.ValidationError("Заголовок не может быть пустым или состоять только из пробелов")
+        
+        
+        validate_title_length(value)
+        
+        return value.strip()  # Убираем лишние пробелы в начале и конце
+    
+    def validate_description(self, value):
+        """Дополнительная валидация описания"""
+        if value:  # Описание может быть пустым
+            # Применяем наш валидатор
+            validate_description_length(value)
+            
+            # Убираем лишние пробелы
+            value = value.strip()
+        
+        return value
 
 
 class PostCreateSerializer(serializers.ModelSerializer):
@@ -233,11 +337,51 @@ class PostCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = ['id', 'title', 'description', 'address', 'latitude', 'longitude', 'rubric', 'status']
-        read_only_fields = ['id'] 
+        read_only_fields = ['id']
+        extra_kwargs = {
+            'title': {
+                'required': True,
+                'validators': [validate_title_length]
+            },
+            'description': {
+                'required': False,
+                'allow_blank': True,
+                'validators': [validate_description_length]
+            },
+            'address': {
+                'required': False,
+                'allow_blank': True
+            }
+        }
     
     def create(self, validated_data):
         validated_data['author'] = self.context['request'].user
         return super().create(validated_data)
+    
+    def validate_title(self, value):
+        """Валидация заголовка при создании"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("Заголовок не может быть пустым или состоять только из пробелов")
+        
+        if len(value.strip()) < 3:
+            raise serializers.ValidationError("Заголовок должен содержать минимум 3 символа")
+        
+        
+        validate_title_length(value)
+        
+        return value.strip()
+    
+    def validate_description(self, value):
+        """Валидация описания при создании"""
+        if value:
+            if len(value.strip()) < 10:
+                raise serializers.ValidationError("Описание должно содержать минимум 10 символов")
+            
+            
+            validate_description_length(value)
+            
+            return value.strip()
+        return value
     
     def validate_status(self, value):
         user = self.context['request'].user
@@ -253,6 +397,28 @@ class PostCreateSerializer(serializers.ModelSerializer):
                 f"Обычные пользователи могут выбрать только статусы: {', '.join(user_allowed_statuses)}"
             )
         return value
+    
+    def validate(self, data):
+        """Общая валидация данных"""
+        # Проверка координат: если указана одна, должна быть указана и вторая
+        lat = data.get('latitude')
+        lon = data.get('longitude')
+        
+        if (lat is not None and lon is None) or (lat is None and lon is not None):
+            raise serializers.ValidationError(
+                "Должны быть указаны обе координаты: и широта, и долгота"
+            )
+        
+        # Проверка диапазона координат
+        if lat is not None and lon is not None:
+            if lat < -90 or lat > 90:
+                raise serializers.ValidationError({"latitude": "Широта должна быть в диапазоне от -90 до 90"})
+            if lon < -180 or lon > 180:
+                raise serializers.ValidationError({"longitude": "Долгота должна быть в диапазоне от -180 до 180"})
+        
+        return data
+
+
 class PostUpdateSerializer(serializers.ModelSerializer):
     """
     Сериализатор для обновления поста/сообщения
@@ -260,7 +426,46 @@ class PostUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = ['id', 'title', 'description', 'address', 'latitude', 'longitude', 'rubric', 'status']
-        read_only_fields = ['id'] 
+        read_only_fields = ['id']
+        extra_kwargs = {
+            'title': {
+                'required': False,
+                'validators': [validate_title_length]
+            },
+            'description': {
+                'required': False,
+                'allow_blank': True,
+                'validators': [validate_description_length]
+            }
+        }
+    
+    def validate_title(self, value):
+        """Валидация заголовка при обновлении"""
+        if value is not None:  # Поле может не передаваться
+            if not value.strip():
+                raise serializers.ValidationError("Заголовок не может быть пустым или состоять только из пробелов")
+            
+            if len(value.strip()) < 3:
+                raise serializers.ValidationError("Заголовок должен содержать минимум 3 символа")
+            
+            # Применяем наш валидатор
+            validate_title_length(value)
+            
+            return value.strip()
+        return value
+    
+    def validate_description(self, value):
+        """Валидация описания при обновлении"""
+        if value is not None:  # Поле может не передаваться
+            if value and len(value.strip()) < 10:
+                raise serializers.ValidationError("Описание должно содержать минимум 10 символов")
+            
+            
+            if value:
+                validate_description_length(value)
+                return value.strip()
+        return value
+    
     def validate_status(self, value):
         user = self.context['request'].user
         
@@ -288,13 +493,24 @@ class PostUpdateSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError({
                         'status': f'Обычные пользователи могут выбрать только статусы: draft, check'
                     })
-                
-                """ Дополнительная проверка: если пост был опубликован,
-                разрешаем сменить только на draft или check (уже проверили выше)
-                Это работает, так как мы уже проверили, что new_status в ['draft', 'check']"""
-                
+        
+        
+        lat = data.get('latitude')
+        lon = data.get('longitude')
+        
+        if (lat is not None and lon is None) or (lat is None and lon is not None):
+            raise serializers.ValidationError(
+                "Должны быть указаны обе координаты: и широта, и долгота"
+            )
+        
+        if lat is not None and lon is not None:
+            if lat < -90 or lat > 90:
+                raise serializers.ValidationError({"latitude": "Широта должна быть в диапазоне от -90 до 90"})
+            if lon < -180 or lon > 180:
+                raise serializers.ValidationError({"longitude": "Долгота должна быть в диапазоне от -180 до 180"})
+        
         return data
-
+####
 class PostPhotoUploadSerializer(serializers.Serializer):
     """
     Сериализатор для загрузки фотографий к посту
