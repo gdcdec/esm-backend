@@ -79,12 +79,18 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         validators=[validate_phone_number]
     )
     city = serializers.CharField(
+        required=False,
+        allow_blank=True,
         validators=[validate_city]
     )
     street = serializers.CharField(
+        required=False,
+        allow_blank=True,
         validators=[validate_street]
     )
     house = serializers.CharField(
+        required=False,
+        allow_blank=True,
         validators=[validate_house]
     )
     apartment = serializers.CharField(

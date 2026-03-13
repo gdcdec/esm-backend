@@ -373,7 +373,7 @@ def validate_apartment(value):
     return value
 
 
-def validate_city(value):
+def validate_city(value):# НЕ ЗАКОНЧЕНО
     """
     Валидация города:
     - для MVP предзаполнен значением «Самара»
@@ -382,11 +382,12 @@ def validate_city(value):
         return "Самара"  # Значение по умолчанию
     
     # Проверка что город из списка разрешенных (для MVP)
-    allowed_cities = ['Самара', 'Москва', 'Санкт-Петербург']  # Расширяйте по необходимости
+    allowed_cities = ['Самара', 'Москва', 'Санкт-Петербург', 'Владиосток']  # Расширяйте по необходимости
     
     if value not in allowed_cities:
         # Для MVP можно автоматически устанавливать Самару
-        return "Самара"
+        #return "Самара"
+        return value
     
     return value
 

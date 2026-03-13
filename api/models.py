@@ -204,7 +204,7 @@ class Post(models.Model):
     rubric = models.ForeignKey(
         Rubric,
         on_delete=models.SET_NULL,  # При удалении рубрики, поле станет NULL
-        null=True,                  # Разрешаем NULL 
+        null=True,                  
         blank=True,
         related_name='posts',        # Обратная связь: rubric.posts.all()
         verbose_name="Рубрика",
