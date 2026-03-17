@@ -37,6 +37,7 @@ from .serializers import (
 from datetime import datetime, timedelta
 from .utils.email_utils import send_password_reset_email
 from .utils.nominatim import reverse_geocode, search, parse_reverse_response
+from .utils.doc_generator import build_universal_letter
 
 User = get_user_model()
 # Create your views here.
@@ -440,14 +441,17 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
     def post(self, request, *args, **kwargs):
         """
         Дополнительный POST по /api/posts/<id>/:
-        если в JSON есть {"doc": "1"}, возвращаем ссылку на документ.
+        если в JSON есть {"doc": "1"}, возвращаем сгенерированный текст обращения.
         """
         doc_flag = str(request.data.get('doc', '')).strip()
         if doc_flag == '1':
+            post = self.get_object()
+            user = request.user if request.user.is_authenticated else post.author
+            letter_text = build_universal_letter(user=user, post=post)
             return Response(
                 {
-                    "doc_url": "https://example.com/document-placeholder",
-                    "message": "Ссылка на документ (заглушка)"
+                    "letter": letter_text,
+                    "message": "Сгенерирован текст универсального обращения. Скопируйте и вставьте в нужную форму."
                 },
                 status=status.HTTP_200_OK,
             )
