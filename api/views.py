@@ -460,11 +460,12 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get(self, request, *args, **kwargs):
         """
-        Дополнительный GET по /api/posts/<id>/:
-        если в JSON есть {"doc": "1"}, возвращаем сгенерированный текст обращения.
+        GET /api/posts/<id>/:
+        - если передан параметр ?doc=1, возвращает сгенерированный текст обращения
+        - иначе возвращает детали поста
         """
-        doc_flag= self.request.query_params.get('doc')
-        #doc_flag = str(request.data.get('doc', '')).strip()
+        doc_flag = self.request.query_params.get('doc')
+        
         if doc_flag == '1':
             post = self.get_object()
             user = request.user if request.user.is_authenticated else post.author
@@ -479,10 +480,9 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
                 )
             else:
                 self.permission_denied(request, "Вы не автор")
-        return Response(
-            {"detail": "Некорректный параметр doc, ожидается '1'."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        
+        # Если параметр doc не передан или не равен '1', возвращаем пост
+        return self.retrieve(request, *args, **kwargs)
     
     def check_object_permissions(self, request, obj):
         # Проверка прав доступа для изменения/удаления
@@ -490,19 +490,19 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
             # Проверка авторства
             if obj.author != request.user:
                 self.permission_denied(request, "Вы не автор этого поста")
-            """
-            # Если захотим блочить изменение статусов опубликованных постов
-            
-            if request.method in ['PUT', 'PATCH'] and not request.user.is_superuser:
-                # Если пост уже опубликован, запрещаем изменение статуса
-                if obj.status == 'published':
-                    if 'status' in request.data and request.data['status'] != 'published':
-                        self.permission_denied(request, "Нельзя изменить статус опубликованного поста")"""
         
         # Проверка прав доступа для просмотра
         if request.method == 'GET':
-            if obj.status != 'published' and obj.author != request.user:
-                self.permission_denied(request, "Пост не опубликован")
+            # Проверяем, является ли запрос на получение текста обращения
+            doc_flag = self.request.query_params.get('doc')
+            if doc_flag == '1':
+                # Для генерации обращения проверяем авторство
+                if obj.author != request.user:
+                    self.permission_denied(request, "Вы не автор")
+            else:
+                # Для обычного просмотра проверяем статус публикации
+                if obj.status != 'published' and obj.author != request.user:
+                    self.permission_denied(request, "Пост не опубликован")
         
         return super().check_object_permissions(request, obj)
 
