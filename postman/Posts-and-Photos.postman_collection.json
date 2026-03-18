@@ -1,11 +1,11 @@
 {
   "info": {
-    "_postman_id": "6630fe8e-899b-4131-8ae0-bd341f155f18",
+    "_postman_id": "26563786-8e3c-4a13-b44d-c5825a76cb6c",
     "name": "Posts and Photos Tests",
     "description": "Полное тестирование постов и фотографий",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "43786527",
-    "_collection_link": "https://go.postman.co/collection/43786527-6630fe8e-899b-4131-8ae0-bd341f155f18?source=collection_link"
+    "_collection_link": "https://go.postman.co/collection/43786527-26563786-8e3c-4a13-b44d-c5825a76cb6c?source=collection_link"
   },
   "item": [
     {
@@ -344,6 +344,9 @@
               }
             }
           ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
             "method": "GET",
             "header": [
@@ -352,6 +355,15 @@
                 "value": "Token {{auth_token}}"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{base_url}}/posts/{{post_id}}/",
               "host": [
@@ -361,6 +373,13 @@
                 "posts",
                 "{{post_id}}",
                 ""
+              ],
+              "query": [
+                {
+                  "key": "doc",
+                  "value": "1",
+                  "disabled": true
+                }
               ]
             }
           },
@@ -383,12 +402,17 @@
                   "    pm.expect(response).to.have.property('doc_url');",
                   "});"
                 ],
-                "type": "text/javascript"
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
               }
             }
           ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "method": "POST",
+            "method": "GET",
             "header": [
               {
                 "key": "Authorization",
@@ -401,10 +425,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"doc\": \"1\"\n}"
+              "raw": ""
             },
             "url": {
-              "raw": "{{base_url}}/posts/{{post_id}}/",
+              "raw": "{{base_url}}/posts/{{post_id}}/?doc=1",
               "host": [
                 "{{base_url}}"
               ],
@@ -412,6 +436,13 @@
                 "posts",
                 "{{post_id}}",
                 ""
+              ],
+              "query": [
+                {
+                  "key": "doc",
+                  "value": "1",
+                  "type": "text"
+                }
               ]
             }
           },

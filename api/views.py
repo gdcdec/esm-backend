@@ -460,7 +460,7 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get(self, request, *args, **kwargs):
         """
-        Дополнительный POST по /api/posts/<id>/:
+        Дополнительный GET по /api/posts/<id>/:
         если в JSON есть {"doc": "1"}, возвращаем сгенерированный текст обращения.
         """
         doc_flag= self.request.query_params.get('doc')
