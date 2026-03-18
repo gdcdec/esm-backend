@@ -458,23 +458,27 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
             return PostUpdateSerializer
         return PostSerializer
 
-    def post(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         """
         Дополнительный POST по /api/posts/<id>/:
         если в JSON есть {"doc": "1"}, возвращаем сгенерированный текст обращения.
         """
-        doc_flag = str(request.data.get('doc', '')).strip()
+        doc_flag= self.request.query_params.get('doc')
+        #doc_flag = str(request.data.get('doc', '')).strip()
         if doc_flag == '1':
             post = self.get_object()
             user = request.user if request.user.is_authenticated else post.author
-            letter_text = build_universal_letter(user=user, post=post)
-            return Response(
-                {
-                    "letter": letter_text,
-                    "message": "Сгенерирован текст универсального обращения. Скопируйте и вставьте в нужную форму."
-                },
-                status=status.HTTP_200_OK,
-            )
+            if post.author == request.user:
+                letter_text = build_universal_letter(user=user, post=post)
+                return Response(
+                    {
+                        "letter": letter_text,
+                        "message": "Сгенерирован текст универсального обращения. Скопируйте и вставьте в нужную форму."
+                    },
+                    status=status.HTTP_200_OK,
+                )
+            else:
+                self.permission_denied(request, "Вы не автор")
         return Response(
             {"detail": "Некорректный параметр doc, ожидается '1'."},
             status=status.HTTP_400_BAD_REQUEST,
