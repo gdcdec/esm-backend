@@ -25,6 +25,14 @@ python manage.py runserver
 ./run_compose.sh
 ```
 
+Then create admin account(s):
+
+```bash
+./create_admins.sh
+```
+
+See `create_admins.sh` for more details.
+
 API: `http://localhost:8000/api/`
 
 ---
