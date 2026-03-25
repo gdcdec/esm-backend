@@ -367,7 +367,7 @@
           "response": []
         },
         {
-          "name": "Отправить doc по посту",
+          "name": "Сгенерировать универсальное обращение",
           "event": [
             {
               "listen": "test",
@@ -379,8 +379,10 @@
                   "",
                   "const response = pm.response.json();",
                   "",
-                  "pm.test(\"✅ Есть doc_url\", function() {",
-                  "    pm.expect(response).to.have.property('doc_url');",
+                  "pm.test(\"✅ Есть letter\", function() {",
+                  "    pm.expect(response).to.have.property('letter');",
+                  "    pm.expect(response.letter).to.be.a('string');",
+                  "    pm.expect(response.letter.length).to.be.above(0);",
                   "});"
                 ],
                 "type": "text/javascript"
