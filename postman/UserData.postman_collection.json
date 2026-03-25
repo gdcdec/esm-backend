@@ -1,0 +1,71 @@
+{
+  "info": {
+    "_postman_id": "6813e20f-810f-4989-8870-0928e8bb2833",
+    "name": "UserData",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "43786527",
+    "_collection_link": "https://go.postman.co/collection/43786527-6813e20f-810f-4989-8870-0928e8bb2833?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Получить данные пользователя(СЕБЯ)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/users/me/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "users",
+            "me",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Обновить данные пользователя (СЕБЯ)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{auth_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "first_name",
+              "value": "ооооо",
+              "type": "text",
+              "uuid": "6e27de1a-734b-4399-a67f-f078752e1fcf"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/users/me/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "users",
+            "me",
+            ""
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

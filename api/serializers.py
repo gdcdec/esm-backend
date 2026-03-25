@@ -156,8 +156,106 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         
         return user
     
+class UserUpdateSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для обновления данных пользователя с валидацией
+    """
+    first_name = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        validators=[validate_first_name]
+    )
+    last_name = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        validators=[validate_last_name]
+    )
+    patronymic = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        validators=[validate_patronymic]
+    )
+    email = serializers.EmailField(
+        required=False,
+        validators=[validate_email_strict]
+    )
+    phone_number = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        validators=[validate_phone_number]
+    )
+    street = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        validators=[validate_street]
+    )
+    house = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        validators=[validate_house]
+    )
+    apartment = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        validators=[validate_apartment]
+    )
+    city = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        validators=[validate_city]
+    )
+    
+    class Meta:
+        model = CustomUser
+        fields = [
+            'first_name', 'last_name', 'patronymic',
+            'email', 'phone_number', 'city', 'street',
+            'house', 'apartment', 'birth_date'
+        ]
+    
+    def validate_email(self, value):
+        """
+        Проверка уникальности email
+        """
+        if not value:
+            return value
+        
+        user = self.context['request'].user
+        if CustomUser.objects.filter(email=value).exclude(id=user.id).exists():
+            raise serializers.ValidationError("Этот email уже используется другим пользователем")
+        return value
+    
+    def update(self, instance, validated_data):
+        """
+        Обновление только переданных полей
+        """
+        for attr, value in validated_data.items():
+            if value is not None:  # Обновляем только переданные поля
+                setattr(instance, attr, value)
+        instance.save()
+        return instance
 
 
+class UserDetailSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для вывода данных пользователя
+    """
+    class Meta:
+        model = CustomUser
+        fields = [
+            'id', 'username', 'first_name', 'last_name', 'patronymic',
+            'email', 'phone_number', 'city', 'street',
+            'house', 'apartment', 'birth_date', 'date_joined'
+        ]
+        read_only_fields = ['id', 'username', 'date_joined']
+
+
+class CurrentUserUpdateSerializer(UserUpdateSerializer):
+    """
+    Сериализатор для обновления текущего пользователя
+    """
+    class Meta(UserUpdateSerializer.Meta):
+        pass
 class PasswordResetRequestSerializer(serializers.Serializer):
     """Сериализатор для запроса сброса пароля"""
     email = serializers.EmailField()

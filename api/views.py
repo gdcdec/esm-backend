@@ -21,6 +21,7 @@ from .serializers import (
     PasswordResetVerifySerializer,
     PasswordResetConfirmSerializer
 )
+from .serializers import UserUpdateSerializer, UserDetailSerializer
 from rest_framework.decorators import api_view
 from rest_framework.parsers import MultiPartParser, FormParser
 from .models import Post, PostPhoto
@@ -41,7 +42,37 @@ from .utils.doc_generator import build_universal_letter
 
 User = get_user_model()
 # Create your views here.
-
+class CurrentUserView(APIView):
+    """
+    Получение и обновление данных текущего пользователя
+    """
+    # Ествественно только аутентифицированные
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        """Получить данные текущего пользователя"""
+        serializer = UserDetailSerializer(request.user)
+        return Response(serializer.data)
+    # Чтобы не проверять совпадение айди, то просто тот кто послал запрос тот и изменяемый
+    def patch(self, request):
+        """
+        Обновить данные текущего пользователя + валидации
+        """
+        serializer = UserUpdateSerializer(
+            request.user,
+            data=request.data,
+            partial=True,
+            context={'request': request}
+        )
+        
+        if serializer.is_valid():
+            serializer.save()
+            detail_serializer = UserDetailSerializer(request.user)
+            return Response(detail_serializer.data)
+        
+        # Возвращаем ошибки валидации
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 @api_view(['GET'])
 def get_rubric_photo_url(request, rubric_name):
     """
