@@ -461,8 +461,11 @@ class PostListView(generics.ListCreateAPIView):
                 queryset = queryset.filter(status=status_param)
 
         
-        else:
-            queryset = queryset.filter(status='published')
+        else:#archived + тк попросили законченные
+            #queryset = queryset.filter(status='published')
+            queryset = queryset.filter(
+                Q(status='published') | Q(status='archived')
+            )
         return queryset
     
     def perform_create(self, serializer):
