@@ -681,7 +681,7 @@ class PostListSerializer(serializers.ModelSerializer):
         model = Post
         fields = [
             'id', 'title', 'address', 'latitude', 'longitude',
-            'rubric_name',
+            'rubric_name', 'status',
             'author_username', 'created_at', 'photo_count', 'preview_photo'
         ]
     
