@@ -19,7 +19,10 @@ from .views import (
     RubricViewSet,
     get_rubric_photo_url,
     CurrentUserView,
-
+    NotificationListView,
+    NotificationDetailView,
+    NotificationMarkReadView,
+    NotificationUnreadCountView,
 )
 
 # router используем когда с таблицей однотипные действия делают
@@ -37,7 +40,11 @@ urlpatterns = [
         # Пользователи
         # Получение и обновление текущего пользователя
         path('users/me/', CurrentUserView.as_view(), name='current-user'),
-        
+        # Уведомления
+        path('notifications/', NotificationListView.as_view(), name='notification-list'),
+        path('notifications/<int:pk>/', NotificationDetailView.as_view(), name='notification-detail'),
+        path('notifications/mark-read/', NotificationMarkReadView.as_view(), name='notification-mark-read'),
+        path('notifications/unread-count/', NotificationUnreadCountView.as_view(), name='notification-unread-count'),
         # Посты
         path('posts/', views.PostListView.as_view(), name='post-list'),
         path('posts/<int:pk>/', views.PostDetailView.as_view(), name='post-detail'),
