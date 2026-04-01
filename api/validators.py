@@ -415,7 +415,8 @@ def validate_description_length(value):
     Валидация длины описания поста
     """
     if not value:  # Описание может быть пустым
-        return value
+        raise ValidationError('Описание не может быть пустым.')
+        #return value
     
     # Убираем пробелы для проверки реальной длины
     stripped_value = value.strip() if isinstance(value, str) else value

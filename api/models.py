@@ -3,6 +3,8 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.auth import get_user_model
 import random
 from datetime import datetime, timedelta
+from django.conf import settings
+from django.utils import timezone
 from .validators import validate_image_size, validate_image_extension
 # api/models.py
 # Create your models here.
@@ -178,7 +180,128 @@ class PasswordReset(models.Model):
     
     def __str__(self):
         return f"{self.user.username} - {self.code}"
-
+# Уведомления для пользователя
+class Notification(models.Model):
+    """
+    Модель уведомлений для пользователей
+    
+    Поля:
+    - id: автоматический первичный ключ
+    - user: внешний ключ к пользователю
+    - subject: тема уведомления
+    - message: содержание уведомления
+    - is_read: статус прочтения
+    - notification_type: тип уведомления
+    - created_at: дата создания
+    - read_at: дата прочтения
+    """
+    
+    class NotificationType(models.TextChoices):
+        INFO = 'info', 'Информация'
+        SUCCESS = 'success', 'Успех'
+        WARNING = 'warning', 'Предупреждение'
+        ERROR = 'error', 'Ошибка'
+        SYSTEM = 'system', 'Системное'
+        POST = 'post', 'Новый пост'
+        
+    user = models.ForeignKey(# Внешний ключ к пользователю 
+        User,
+        on_delete=models.CASCADE,
+        related_name='notifications',
+        verbose_name='Пользователь',
+        db_index=True
+    )
+    
+    subject = models.CharField(
+        max_length=255,
+        verbose_name='Тема'
+    )
+    
+    message = models.TextField(
+        verbose_name='Содержание'
+    )
+    
+    is_read = models.BooleanField(
+        default=False,
+        verbose_name='Прочитано',
+        db_index=True
+    )
+    
+    notification_type = models.CharField(
+        max_length=20,
+        choices=NotificationType.choices,
+        default=NotificationType.INFO,
+        verbose_name='Тип уведомления'
+    )
+    
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата создания',
+        db_index=True
+    )
+    
+    read_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name='Дата прочтения'
+    )
+    
+    # Дополнительные поля для ссылок (необязательно)
+    link = models.CharField(
+        max_length=500,
+        blank=True,
+        null=True,
+        verbose_name='Ссылка'
+    )
+    
+    # Метаданные для дополнительной информации (JSON поле)
+    metadata = models.JSONField(
+        blank=True,
+        default=dict,
+        verbose_name='Дополнительные данные'
+    )
+    
+    class Meta:
+        db_table = 'notifications'
+        verbose_name = 'Уведомление'
+        verbose_name_plural = 'Уведомления'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['user', 'is_read']),
+        ]
+    
+    def __str__(self):
+        return f"Уведомление для {self.user.email}: {self.subject}"
+    
+    def mark_as_read(self):
+        """Отметить уведомление как прочитанное"""
+        if not self.is_read:
+            self.is_read = True
+            self.read_at = timezone.now()
+            self.save(update_fields=['is_read', 'read_at'])
+    
+    def mark_as_unread(self):
+        """Отметить уведомление как непрочитанное"""
+        if self.is_read:
+            self.is_read = False
+            self.read_at = None
+            self.save(update_fields=['is_read', 'read_at'])
+    
+    @classmethod
+    def create_notification(cls, user, subject, message, 
+                           notification_type='info', link=None, **metadata):
+        """
+        Создать новое уведомление
+        """
+        return cls.objects.create(
+            user=user,
+            subject=subject,
+            message=message,
+            notification_type=notification_type,
+            link=link,
+            metadata=metadata
+        )
 
 # Контент
 class Post(models.Model):
@@ -404,3 +527,12 @@ class PostPhoto(models.Model):
             if storage.exists(self.photo.name):
                 storage.delete(self.photo.name)
         super().delete(*args, **kwargs)
+        
+__all__ = ['Notification',
+            'CustomUser',
+            'Rubric', 
+            'Post',
+            'PostPhoto',
+            'Notification',
+            'NotificationType',
+]

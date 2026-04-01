@@ -5,7 +5,7 @@ from rest_framework import viewsets, status, generics, permissions
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError, PermissionDenied
 from .models import Rubric, CustomUser
 from .serializers import RubricSerializer, UserRegistrationSerializer
 from rest_framework.authtoken.models import Token
@@ -20,6 +20,11 @@ from .serializers import (
     PasswordResetRequestSerializer,
     PasswordResetVerifySerializer,
     PasswordResetConfirmSerializer
+)
+from .models import Notification
+from .serializers import (
+    NotificationSerializer, 
+    NotificationMarkReadSerializer
 )
 from .serializers import UserUpdateSerializer, UserDetailSerializer
 from rest_framework.decorators import api_view
@@ -366,7 +371,160 @@ class PasswordResetStatusView(APIView):
             return Response({
                 'error': 'Пользователь не найден'
             }, status=status.HTTP_404_NOT_FOUND)
+
+# Уведомления
+        """
+
+        GET /api/notifications/ - список уведомлений
+        GET /api/notifications/?is_read=false - только непрочитанные
+        GET /api/notifications/?notification_type=info - по типу
+        GET /api/notifications/unread-count/ - количество непрочитанных
+        POST /api/notifications/mark-read/ - отметить как прочитанные
+        GET/PATCH /api/notifications/<id>/ - детали уведомления
+        
+        """
+class NotificationListView(generics.ListAPIView):
+    """
+    Получение списка уведомлений текущего пользователя
+    
+    Параметры:
+    - is_read: фильтр по статусу прочтения (true/false)
+    - notification_type: фильтр по типу
+    - limit: ограничение количества (по умолчанию 50)
+    """
+    
+    serializer_class = NotificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
+        queryset = Notification.objects.filter(user=user)
+        
+        # Фильтрация по статусу прочтения
+        is_read = self.request.query_params.get('is_read')
+        if is_read is not None:
+            is_read_bool = is_read.lower() == 'true'
+            queryset = queryset.filter(is_read=is_read_bool)
+        
+        # Фильтрация по типу
+        notification_type = self.request.query_params.get('notification_type')
+        if notification_type:
+            queryset = queryset.filter(notification_type=notification_type)
+        
+        # Ограничение количества
+        limit = self.request.query_params.get('limit', 50)
+        try:
+            limit = int(limit)
+            queryset = queryset[:limit]
+        except (ValueError, TypeError):
+            pass
+        
+        return queryset
+    
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        
+        # Добавляем информацию о количестве непрочитанных
+        unread_count = Notification.objects.filter(
+            user=request.user, 
+            is_read=False
+        ).count()
+        
+        response.data = {
+            'notifications': response.data,
+            'unread_count': unread_count
+        }
+        
+        return response
+
+
+class NotificationDetailView(generics.RetrieveUpdateAPIView):
+    """
+    Получение и обновление конкретного уведомления
+    """
+    
+    serializer_class = NotificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        return Notification.objects.filter(user=self.request.user)
+    
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', True)
+        instance = self.get_object()
+        
+        # Разрешаем обновлять только is_read
+        if 'is_read' in request.data:
+            if request.data['is_read']:
+                instance.mark_as_read()
+            else:
+                instance.mark_as_unread()
+        
+        serializer = self.get_serializer(instance, partial=partial)
+        return Response(serializer.data)
+
+
+class NotificationMarkReadView(generics.GenericAPIView):
+    """
+    Отметить уведомления как прочитанные
+    """
+    
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = NotificationMarkReadSerializer
+    
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        user = request.user
+        
+        # Отметить все
+        if serializer.validated_data.get('mark_all', False):
+            count = Notification.objects.filter(
+                user=user, 
+                is_read=False
+            ).update(is_read=True, read_at=timezone.now())
             
+            return Response({
+                'message': f'Отмечено {count} уведомлений как прочитанные',
+                'marked_count': count
+            })
+        
+        # Отметить конкретные
+        notification_ids = serializer.validated_data.get('notification_ids', [])
+        if notification_ids:
+            count = Notification.objects.filter(
+                user=user,
+                id__in=notification_ids,
+                is_read=False
+            ).update(is_read=True, read_at=timezone.now())
+            
+            return Response({
+                'message': f'Отмечено {count} уведомлений как прочитанные',
+                'marked_count': count
+            })
+        
+        return Response(
+            {'error': 'Не указаны уведомления для отметки'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+class NotificationUnreadCountView(generics.GenericAPIView):
+    """
+    Получить количество непрочитанных уведомлений
+    """
+    
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        count = Notification.objects.filter(
+            user=request.user, 
+            is_read=False
+        ).count()
+        
+        return Response({'unread_count': count})
+
 # Posts
 class PostListView(generics.ListCreateAPIView):
     """
