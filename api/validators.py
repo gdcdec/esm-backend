@@ -240,7 +240,7 @@ def validate_phone_number(value):
     
     
     # Форматируем для хранения
-    formatted = f"+{digits_only[0]} {digits_only[1:4]} {digits_only[4:7]} {digits_only[7:9]} {digits_only[9:11]}"
+    formatted = f"+{digits_only[0]}{digits_only[1:4]}{digits_only[4:7]}{digits_only[7:9]}{digits_only[9:11]}"
     
     return formatted
 

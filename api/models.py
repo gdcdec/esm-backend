@@ -88,7 +88,7 @@ class CustomUser(AbstractUser):
     )
     
     phone_number = models.CharField(
-        max_length=15, 
+        max_length=16, 
         blank=True, 
         null=True,
         verbose_name="Номер телефона"
