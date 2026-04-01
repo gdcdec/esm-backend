@@ -688,78 +688,153 @@ class PostCreateSerializer(serializers.ModelSerializer):
         
         return data
 
-
 class PostUpdateSerializer(serializers.ModelSerializer):
     """
     Сериализатор для обновления поста/сообщения
+    PUT - полное обновление (все поля обязательны)
+    PATCH - частичное обновление (только переданные поля)
     """
     class Meta:
         model = Post
-        fields = ['id', 'title', 'description', 'address', 'latitude', 'longitude', 'rubric', 'status']
+        fields = [
+            'id', 'title', 'description', 'address', 
+            'latitude', 'longitude', 'rubric', 'status'
+        ]
         read_only_fields = ['id']
-        extra_kwargs = {
-            'title': {
-                'required': False,
-            },
-            'description': {
-                'required': False,  # При обновлении необязательно
-                'allow_blank': False,
-            }
-        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        
+        # Для PUT запроса делаем все поля обязательными
+        if request and request.method == 'PUT':
+            for field in self.fields.values():
+                field.required = True
+                if hasattr(field, 'allow_blank'):
+                    field.allow_blank = False
+                if hasattr(field, 'allow_null'):
+                    field.allow_null = False
     
     def validate_title(self, value):
-        """Валидация заголовка при обновлении"""
-        if value is not None:  # Поле может не передаваться
-            if not value.strip():
-                raise serializers.ValidationError("Заголовок не может быть пустым или состоять только из пробелов")
+        """Валидация заголовка"""
+        if value is not None:
+            # Проверка на пустоту
+            if isinstance(value, str) and not value.strip():
+                raise serializers.ValidationError("Заголовок не может быть пустым")
             
-            cleaned_title = value.strip()
+            cleaned_title = value.strip() if isinstance(value, str) else value
             
             if len(cleaned_title) < 3:
                 raise serializers.ValidationError("Заголовок должен содержать минимум 3 символа")
             
-            # Используем существующий валидатор
             try:
                 validate_title_length(cleaned_title)
             except Exception as e:
                 raise serializers.ValidationError(str(e))
             
             return cleaned_title
+        
+        # Если значение None и это PUT запрос - ошибка
+        request = self.context.get('request')
+        if request and request.method == 'PUT':
+            raise serializers.ValidationError("Заголовок обязателен")
+        
         return value
     
     def validate_description(self, value):
-        """Валидация описания при обновлении"""
-        if value is not None:  # Поле может не передаваться
-            if not value.strip():
-                raise serializers.ValidationError("Описание не может состоять только из пробелов")
+        """Валидация описания"""
+        if value is not None:
+            if isinstance(value, str) and not value.strip():
+                raise serializers.ValidationError("Описание не может быть пустым")
             
-            cleaned_description = value.strip()
+            cleaned_description = value.strip() if isinstance(value, str) else value
             
             if len(cleaned_description) < 10:
                 raise serializers.ValidationError("Описание должно содержать минимум 10 символов")
             
-            # Используем существующий валидатор
             try:
                 validate_description_length(cleaned_description)
             except Exception as e:
                 raise serializers.ValidationError(str(e))
             
             return cleaned_description
+        
+        # Если значение None и это PUT запрос - ошибка
+        request = self.context.get('request')
+        if request and request.method == 'PUT':
+            raise serializers.ValidationError("Описание обязательно")
+        
+        return value
+    
+    def validate_address(self, value):
+        """Валидация адреса"""
+        if value is not None:
+            if isinstance(value, str) and not value.strip():
+                return None
+            return value.strip() if isinstance(value, str) else value
+        return value
+    
+    def validate_latitude(self, value):
+        """Валидация широты"""
+        if value is not None:
+            if value == '' or value is None:
+                return None
+            
+            try:
+                value = float(value)
+                if value < -90 or value > 90:
+                    raise serializers.ValidationError("Широта должна быть в диапазоне от -90 до 90")
+            except (TypeError, ValueError):
+                raise serializers.ValidationError("Некорректное значение широты")
+            
+            return value
+        return value
+    
+    def validate_longitude(self, value):
+        """Валидация долготы"""
+        if value is not None:
+            if value == '' or value is None:
+                return None
+            
+            try:
+                value = float(value)
+                if value < -180 or value > 180:
+                    raise serializers.ValidationError("Долгота должна быть в диапазоне от -180 до 180")
+            except (TypeError, ValueError):
+                raise serializers.ValidationError("Некорректное значение долготы")
+            
+            return value
+        return value
+    
+    def validate_rubric(self, value):
+        """Валидация рубрики"""
+        if value is not None:
+            if value == '' or value is None:
+                return None
+            return value
         return value
     
     def validate_status(self, value):
-        """Валидация статуса при обновлении"""
-        user = self.context['request'].user
+        """Валидация статуса"""
+        if value is not None:
+            user = self.context['request'].user
+            
+            # Доступные статусы для обычных пользователей
+            user_allowed_statuses = ['draft', 'check']
+            
+            # Проверка для обычных пользователей
+            if not user.is_superuser:
+                if value not in user_allowed_statuses:
+                    raise serializers.ValidationError(
+                        f"Обычные пользователи могут выбрать только статусы: {', '.join(user_allowed_statuses)}"
+                    )
+            
+            return value
         
-        # Доступные статусы для обычных пользователей
-        user_allowed_statuses = ['draft', 'check']
-        
-        # Проверка для обычных пользователей
-        if not user.is_superuser:
-            if value not in user_allowed_statuses:
-                raise serializers.ValidationError(
-                    f"Обычные пользователи могут выбрать только статусы: {', '.join(user_allowed_statuses)}"
-                )
+        # Если значение None и это PUT запрос - ошибка
+        request = self.context.get('request')
+        if request and request.method == 'PUT':
+            raise serializers.ValidationError("Статус обязателен")
         
         return value
     
@@ -767,41 +842,83 @@ class PostUpdateSerializer(serializers.ModelSerializer):
         """Общая валидация данных"""
         user = self.context['request'].user
         instance = self.instance
+        request = self.context.get('request')
         
-        # Дополнительная проверка для обычных пользователей
+        # Проверка для обычных пользователей
         if instance and not user.is_superuser:
             # Проверяем, пытается ли пользователь изменить опубликованный пост
             if instance.status == 'published':
-                if 'title' in data or 'description' in data or 'address' in data:
-                    raise serializers.ValidationError(
-                        "Нельзя редактировать опубликованный пост"
-                    )
+                # Проверяем, какие поля переданы в запросе
+                fields_to_check = ['title', 'description', 'address', 'latitude', 'longitude']
+                for field in fields_to_check:
+                    if field in self.initial_data:
+                        raise serializers.ValidationError(
+                            f"Нельзя редактировать опубликованный пост. Поле '{field}' не может быть изменено"
+                        )
+        
+        # Для PUT запроса - проверяем координаты
+        if request and request.method == 'PUT':
+            lat = data.get('latitude')
+            lon = data.get('longitude')
             
-            # Проверка статуса
-            if 'status' in data:
-                new_status = data['status']
-                if new_status not in ['draft', 'check']:
-                    raise serializers.ValidationError({
-                        'status': 'Обычные пользователи могут выбрать только статусы: draft, check'
-                    })
+            # Если указана одна координата, должна быть указана и вторая
+            if (lat is not None and lon is None) or (lat is None and lon is not None):
+                raise serializers.ValidationError(
+                    "Должны быть указаны обе координаты: и широта, и долгота"
+                )
         
-        # Проверка координат
-        lat = data.get('latitude')
-        lon = data.get('longitude')
-        
-        if (lat is not None and lon is None) or (lat is None and lon is not None):
-            raise serializers.ValidationError(
-                "Должны быть указаны обе координаты: и широта, и долгота"
-            )
-        
-        if lat is not None and lon is not None:
-            if lat < -90 or lat > 90:
-                raise serializers.ValidationError({"latitude": "Широта должна быть в диапазоне от -90 до 90"})
-            if lon < -180 or lon > 180:
-                raise serializers.ValidationError({"longitude": "Долгота должна быть в диапазоне от -180 до 180"})
+        # Для PATCH запроса - проверка координат с учетом существующих
+        else:
+            lat_in_request = 'latitude' in self.initial_data
+            lon_in_request = 'longitude' in self.initial_data
+            lat = data.get('latitude')
+            lon = data.get('longitude')
+            
+            if lat_in_request and not lon_in_request:
+                if instance.longitude is None and lat is not None:
+                    raise serializers.ValidationError(
+                        "Нельзя установить широту без долготы"
+                    )
+            elif not lat_in_request and lon_in_request:
+                if instance.latitude is None and lon is not None:
+                    raise serializers.ValidationError(
+                        "Нельзя установить долготу без широты"
+                    )
         
         return data
-    ####
+    
+    def update(self, instance, validated_data):
+        """
+        Обновление поста
+        PUT - обновляем все поля (то, что не передано - очищаем)
+        PATCH - обновляем только переданные поля
+        """
+        request = self.context.get('request')
+        
+        if request and request.method == 'PUT':
+            # Для PUT - обновляем все поля
+            # Поля, которые не попали в validated_data, нужно очистить
+            for field in self.fields:
+                if field in validated_data:
+                    setattr(instance, field, validated_data[field])
+                else:
+                    # Очищаем поле (устанавливаем значение по умолчанию)
+                    if field in ['title', 'description', 'status']:
+                        # Обязательные поля - оставляем как есть, но если они не переданы - ошибка
+                        # Это уже проверено в валидации
+                        pass
+                    elif field in ['address', 'rubric']:
+                        setattr(instance, field, None)
+                    elif field in ['latitude', 'longitude']:
+                        setattr(instance, field, None)
+        else:
+            # Для PATCH - обновляем только переданные поля
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+        
+        instance.save()
+        return instance
+    
 class PostPhotoUploadSerializer(serializers.Serializer):
     """
     Сериализатор для загрузки фотографий к посту
