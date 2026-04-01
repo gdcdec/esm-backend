@@ -48,7 +48,7 @@ def notify_user_about_post_status_change(post, old_status, new_status, admin_use
     """
     status_names = {
         'draft': 'черновик',
-        'check': 'проверку',
+        'check': 'на проверку',
         'published': 'опубликован',
         'archived': 'архивирован',
         'deleted': 'удален'
