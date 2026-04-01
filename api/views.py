@@ -808,6 +808,14 @@ class PostPhotoDeleteView(generics.DestroyAPIView):
         if obj.post.author != request.user:
             self.permission_denied(request, "Вы не автор этого поста")
         return super().check_object_permissions(request, obj)
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(
+            {"message": "Фотография успешно удалена"},
+            status=status.HTTP_200_OK
+        )    
+    
 
 
 # === Nominatim / адреса

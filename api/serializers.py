@@ -1005,7 +1005,6 @@ class PostListSerializer(serializers.ModelSerializer):
             return first.photo.url
         return None
 
-
 # === Nominatim / адреса ===
 class AddressReverseSerializer(serializers.Serializer):
     """Запрос обратного геокодирования: координаты → адрес"""
