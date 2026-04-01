@@ -72,7 +72,6 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         ]
         extra_kwargs = {
             'email': {'required': True},
-            # Убираем валидаторы из extra_kwargs, чтобы не дублировать
             'username': {'required': True},
             'first_name': {'required': False, 'allow_blank': True},
             'last_name': {'required': False, 'allow_blank': True},
