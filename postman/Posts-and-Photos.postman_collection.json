@@ -172,7 +172,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"title\": \"{{post_title}}\",\n    \"description\": \"Это тестовый пост, созданный в Postman для проверки функционала\",\n    \"address\": \"ул. Ленина, 1\",\n    \"latitude\": 55.7558,\n    \"longitude\": 37.6173,\n    \"status\": \"published\",\n    \"rubric\": \"Тестовая рубрика\"\n}"
+              "raw": "{\n    \"title\": \"{{post_title}}\",\n    \"description\": \"Это тестовый пост, созданный в Postman для проверки функционала\",\n    \"address\": \"ул. Ленина, 1\",\n    \"latitude\": 55.7558,\n    \"longitude\": 37.6173,\n    \"status\": \"draft\",\n    \"rubric\": \"Тестовая рубрика\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/posts/",
@@ -386,7 +386,7 @@
           "response": []
         },
         {
-          "name": "Сгенерировать универсальное обращение",
+          "name": "Отправить doc по посту",
           "event": [
             {
               "listen": "test",
@@ -398,10 +398,8 @@
                   "",
                   "const response = pm.response.json();",
                   "",
-                  "pm.test(\"✅ Есть letter\", function() {",
-                  "    pm.expect(response).to.have.property('letter');",
-                  "    pm.expect(response.letter).to.be.a('string');",
-                  "    pm.expect(response.letter.length).to.be.above(0);",
+                  "pm.test(\"✅ Есть doc_url\", function() {",
+                  "    pm.expect(response).to.have.property('doc_url');",
                   "});"
                 ],
                 "type": "text/javascript",
@@ -668,6 +666,80 @@
                 "posts",
                 "photos",
                 "upload",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Удалить фотку",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"✅ Статус 201\", function() {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "",
+                  "pm.test(\"✅ Загружено 1 фото\", function() {",
+                  "    pm.expect(response).to.be.an('array');",
+                  "    pm.expect(response.length).to.eql(1);",
+                  "});",
+                  "",
+                  "const photo = response[0];",
+                  "pm.environment.set(\"photo_id\", photo.id);",
+                  "",
+                  "pm.test(\"✅ Фото имеет корректные данные\", function() {",
+                  "    pm.expect(photo).to.have.property('id');",
+                  "    pm.expect(photo).to.have.property('photo_url');",
+                  "    pm.expect(photo).to.have.property('order');",
+                  "    pm.expect(photo).to.have.property('caption');",
+                  "    pm.expect(photo.photo_url).to.include('/media/posts/');",
+                  "    pm.expect(photo.caption).to.eql('Тестовое фото');",
+                  "    pm.expect(photo.order).to.eql(0);",
+                  "});",
+                  "",
+                  "console.log(`✅ Фото загружено, ID: ${photo.id}`);",
+                  "console.log(`📸 URL: ${photo.photo_url}`);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "post_id",
+                  "value": "{{post_id}}",
+                  "type": "text",
+                  "disabled": true
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/posts/photos/{{photo_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "photos",
+                "{{photo_id}}",
                 ""
               ]
             }

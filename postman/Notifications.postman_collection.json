@@ -1,0 +1,149 @@
+{
+  "info": {
+    "_postman_id": "3580b76e-c99e-4700-ac35-686bb87cbeed",
+    "name": "Notifications",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "43786527",
+    "_collection_link": "https://go.postman.co/collection/43786527-3580b76e-c99e-4700-ac35-686bb87cbeed?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "GetMyNots",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{auth_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/notifications/?is_read=false",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "notifications",
+            ""
+          ],
+          "query": [
+            {
+              "key": "is_read",
+              "value": "false"
+            },
+            {
+              "key": "notification_type",
+              "value": "info",
+              "disabled": true
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "NotsMarkReadAll",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{auth_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/notifications/mark-read/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "notifications",
+            "mark-read",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "NotsMarkReadSome",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{auth_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"notification_ids\": [2]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/notifications/mark-read/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "notifications",
+            "mark-read",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GetMyNotsDetail",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{auth_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/notifications/{{not_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "notifications",
+            "{{not_id}}"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

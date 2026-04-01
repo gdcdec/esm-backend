@@ -41,6 +41,7 @@ from .serializers import (
     AddressSearchSerializer,
 )
 from datetime import datetime, timedelta
+from django.utils import timezone
 from .utils.email_utils import send_password_reset_email
 from .utils.nominatim import reverse_geocode, search, parse_reverse_response
 from .utils.doc_generator import build_universal_letter
@@ -479,7 +480,7 @@ class NotificationMarkReadView(generics.GenericAPIView):
         user = request.user
         
         # Отметить все
-        if serializer.validated_data.get('mark_all', False):
+        if serializer.validated_data.get('mark_all'):
             count = Notification.objects.filter(
                 user=user, 
                 is_read=False
@@ -650,6 +651,32 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
             return PostUpdateSerializer
         return PostSerializer
 
+    def get_serializer_context(self):
+        """
+        Добавляем request в контекст сериализатора
+        """
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+    def update(self, request, *args, **kwargs):
+        """
+        Обновление поста
+        PUT - полное обновление
+        PATCH - частичное обновление
+        """
+        partial = kwargs.pop('partial', False)
+        
+        # Для PUT запроса делаем partial=False (полное обновление)
+        if request.method == 'PUT':
+            partial = False
+        
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        
+        return Response(serializer.data)
     def get(self, request, *args, **kwargs):
         """
         GET /api/posts/<id>/:
@@ -781,6 +808,14 @@ class PostPhotoDeleteView(generics.DestroyAPIView):
         if obj.post.author != request.user:
             self.permission_denied(request, "Вы не автор этого поста")
         return super().check_object_permissions(request, obj)
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(
+            {"message": "Фотография успешно удалена"},
+            status=status.HTTP_200_OK
+        )    
+    
 
 
 # === Nominatim / адреса

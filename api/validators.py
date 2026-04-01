@@ -8,9 +8,9 @@ from django.utils.translation import gettext_lazy as _
 
 def validate_image_size(file):
     """
-    Проверка размера файла (макс 5 МБ)
+    Проверка размера файла (макс ? МБ)
     """
-    max_size_mb = 5
+    max_size_mb = 10
     max_size_bytes = max_size_mb * 1024 * 1024
     
     if file.size > max_size_bytes:
