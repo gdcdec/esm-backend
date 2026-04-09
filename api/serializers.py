@@ -14,6 +14,12 @@ from .validators import (
 
 User = get_user_model()
 
+def _extract_error_message(e):
+    if hasattr(e, 'message'):
+        return e.message
+    if hasattr(e, 'messages') and e.messages:
+        return e.messages[0]
+    return str(e)
 
 class RubricSerializer(serializers.ModelSerializer):
     # Добавляем поле для отображения URL фото
@@ -89,7 +95,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         try:
             validate_username(value)
         except Exception as e:
-            raise serializers.ValidationError(str(e))
+            raise serializers.ValidationError(_extract_error_message(e))
         
         # Проверка уникальности
         if CustomUser.objects.filter(username=value).exists():
@@ -103,7 +109,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         try:
             validate_email_strict(value)
         except Exception as e:
-            raise serializers.ValidationError(str(e))
+            raise serializers.ValidationError(_extract_error_message(e))
         
         # Проверка уникальности
         if CustomUser.objects.filter(email=value).exists():
@@ -117,7 +123,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             try:
                 validate_first_name(value)
             except Exception as e:
-                raise serializers.ValidationError(str(e))
+                raise serializers.ValidationError(_extract_error_message(e))
         return value
     
     def validate_last_name(self, value):
@@ -126,7 +132,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             try:
                 validate_last_name(value)
             except Exception as e:
-                raise serializers.ValidationError(str(e))
+                raise serializers.ValidationError(_extract_error_message(e))
         return value
     
     def validate_patronymic(self, value):
@@ -135,7 +141,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             try:
                 validate_patronymic(value)
             except Exception as e:
-                raise serializers.ValidationError(str(e))
+                raise serializers.ValidationError(_extract_error_message(e))
         return value
     
     def validate_phone_number(self, value):
@@ -144,7 +150,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             try:
                 return validate_phone_number(value)
             except Exception as e:
-                raise serializers.ValidationError(str(e))
+                raise serializers.ValidationError(_extract_error_message(e))
         return value
     
     def validate_city(self, value):
@@ -153,7 +159,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             try:
                 validate_city(value)
             except Exception as e:
-                raise serializers.ValidationError(str(e))
+                raise serializers.ValidationError(_extract_error_message(e))
             return value
         return "Самара"  # Значение по умолчанию
     
@@ -163,7 +169,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             try:
                 validate_street(value)
             except Exception as e:
-                raise serializers.ValidationError(str(e))
+                raise serializers.ValidationError(_extract_error_message(e))
         return value
     
     def validate_house(self, value):
@@ -172,7 +178,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             try:
                 validate_house(value)
             except Exception as e:
-                raise serializers.ValidationError(str(e))
+                raise serializers.ValidationError(_extract_error_message(e))
         return value
     
     def validate_apartment(self, value):
@@ -181,7 +187,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             try:
                 validate_apartment(value)
             except Exception as e:
-                raise serializers.ValidationError(str(e))
+                raise serializers.ValidationError(_extract_error_message(e))
         return value
     
     def validate(self, data):
@@ -248,7 +254,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             try:
                 validate_first_name(value)
             except Exception as e:
-                raise serializers.ValidationError(str(e))
+                raise serializers.ValidationError(_extract_error_message(e))
         return value
     
     def validate_last_name(self, value):
@@ -257,7 +263,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             try:
                 validate_last_name(value)
             except Exception as e:
-                raise serializers.ValidationError(str(e))
+                raise serializers.ValidationError(_extract_error_message(e))
         return value
     
     def validate_patronymic(self, value):
@@ -266,7 +272,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             try:
                 validate_patronymic(value)
             except Exception as e:
-                raise serializers.ValidationError(str(e))
+                raise serializers.ValidationError(_extract_error_message(e))
         return value
     
     def validate_email(self, value):
@@ -278,7 +284,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         try:
             validate_email_strict(value)
         except Exception as e:
-            raise serializers.ValidationError(str(e))
+            raise serializers.ValidationError(_extract_error_message(e))
         
         # Проверка уникальности email
         user = self.context['request'].user
@@ -293,7 +299,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             try:
                 return validate_phone_number(value)
             except Exception as e:
-                raise serializers.ValidationError(str(e))
+                raise serializers.ValidationError(_extract_error_message(e))
         return value
     
     def validate_city(self, value):
@@ -302,7 +308,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             try:
                 validate_city(value)
             except Exception as e:
-                raise serializers.ValidationError(str(e))
+                raise serializers.ValidationError(_extract_error_message(e))
             return value
         return "Самара"  # Значение по умолчанию
     
@@ -312,7 +318,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             try:
                 validate_street(value)
             except Exception as e:
-                raise serializers.ValidationError(str(e))
+                raise serializers.ValidationError(_extract_error_message(e))
         return value
     
     def validate_house(self, value):
@@ -321,7 +327,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             try:
                 validate_house(value)
             except Exception as e:
-                raise serializers.ValidationError(str(e))
+                raise serializers.ValidationError(_extract_error_message(e))
         return value
     
     def validate_apartment(self, value):
@@ -330,7 +336,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             try:
                 validate_apartment(value)
             except Exception as e:
-                raise serializers.ValidationError(str(e))
+                raise serializers.ValidationError(_extract_error_message(e))
         return value
     
     def validate_birth_date(self, value):
@@ -626,7 +632,7 @@ class PostCreateSerializer(serializers.ModelSerializer):
         try:
             validate_title_length(cleaned_title)
         except Exception as e:
-            raise serializers.ValidationError(str(e))
+            raise serializers.ValidationError(_extract_error_message(e))
         
         return cleaned_title
     
@@ -649,7 +655,7 @@ class PostCreateSerializer(serializers.ModelSerializer):
         try:
             validate_description_length(cleaned_description)
         except Exception as e:
-            raise serializers.ValidationError(str(e))
+            raise serializers.ValidationError(_extract_error_message(e))
         
         return cleaned_description
     
@@ -729,7 +735,7 @@ class PostUpdateSerializer(serializers.ModelSerializer):
             try:
                 validate_title_length(cleaned_title)
             except Exception as e:
-                raise serializers.ValidationError(str(e))
+                raise serializers.ValidationError(_extract_error_message(e))
             
             return cleaned_title
         
@@ -754,7 +760,7 @@ class PostUpdateSerializer(serializers.ModelSerializer):
             try:
                 validate_description_length(cleaned_description)
             except Exception as e:
-                raise serializers.ValidationError(str(e))
+                raise serializers.ValidationError(_extract_error_message(e))
             
             return cleaned_description
         
