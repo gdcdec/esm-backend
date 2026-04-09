@@ -185,7 +185,8 @@ DEFAULT_FROM_EMAIL = 'paposerver1@gmail.com'
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+#до изменения было en-us
+LANGUAGE_CODE = 'ru'
 
 TIME_ZONE = 'UTC'
 
